@@ -193,8 +193,8 @@ label.fl{font-size:11.5px;color:var(--muted);font-weight:600;display:block;margi
 const CONFIG = {
   // 1) Aus der Google Cloud Console (OAuth-Client-ID, Typ "Web"):
   CLIENT_ID: "41724694969-jjiake1qt6nvmb7hpccmmqn80jt8u108.apps.googleusercontent.com",
-  // 2) Nur diese Google-Konten dürfen rein (Kleinschreibung):
-  ALLOWED_EMAILS: ["dominik-voegele1999@gmx.de", "kevin.kuepper1714@gmail.com"],
+  // 2) Zugang nur fuer freigegebene Konten - als SHA-256-Hash (keine Klartext-Adressen im Quelltext):
+  ALLOWED_HASHES: ["f1080b0e4391333e409ce2411910028fb723b5f8da894feb614ae90303f75d29","d8f63b77c4775c8685708832360e3837cd32d1e169ff90019f19e27915e3957a"],
   // 3) Eure Drive-Ordner (bereits eingetragen):
   MAIN_FOLDER:  "1XbpjRogbw46N6_X7cq7zbnr1F3XYbW52",
   PROTO_FOLDER: "16GhwD2UD3FGdE729jH_xPBtcS5eeB7Mb",
@@ -229,15 +229,16 @@ function bootAuth(){
   // Bereits einmal angemeldet? Stillen Versuch starten.
   if(localStorage.getItem("zk_signed")){ try{ tokenClient.requestAccessToken({prompt:""}); }catch(e){} }
 }
+async function sha256hex(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
 async function checkUser(){
   try{
     const r=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+ACCESS_TOKEN}});
     const u=await r.json();
     CURRENT_EMAIL=(u.email||"").toLowerCase();
-    const allow=CONFIG.ALLOWED_EMAILS.map(e=>e.toLowerCase());
-    if(!allow.includes(CURRENT_EMAIL)){
+    const h=await sha256hex(CURRENT_EMAIL);
+    if(!CONFIG.ALLOWED_HASHES.includes(h)){
       ACCESS_TOKEN=null;localStorage.removeItem("zk_signed");
-      showLogin("Kein Zugriff für "+(u.email||"dieses Konto")+".");return false;
+      showLogin("Kein Zugriff für dieses Konto.");return false;
     }
     localStorage.setItem("zk_signed","1");
     $("#whoami").textContent=u.email||"";
