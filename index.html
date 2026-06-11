@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projekt Zeitkapsel · Command Center</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f4f6fb; --card:#ffffff; --ink:#15233b; --muted:#64748b;
+  --line:#e3e8f0; --brand:#3b5bdb; --brand-soft:#eaeeff;
+  --amber:#b45309; --shadow:0 1px 2px rgba(20,35,59,.06),0 8px 24px rgba(20,35,59,.06);
+  --radius:14px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:14px;line-height:1.5;}
+a{color:var(--brand);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 18px 60px}
+header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#3b5bdb,#7048e8);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px;flex:none}
+h1{font-size:20px;margin:0;letter-spacing:-.2px}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.phasebadge{background:var(--brand-soft);color:var(--brand);
+  padding:6px 12px;border-radius:999px;font-weight:700;font-size:12.5px;cursor:pointer;border:1px solid #d6ddff}
+.userchip{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12.5px;color:var(--muted)}
+.userchip button{background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer;color:var(--ink);font:inherit}
+.userchip button:hover{border-color:var(--brand);color:var(--brand)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.col-full{grid-column:1 / -1}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.phasebadge{order:3}.userchip{order:2}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:16px 16px 14px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);
+  margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.card h2 .count{background:var(--brand-soft);color:var(--brand);border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700}
+.card h2 .reload{margin-left:auto;background:#fff;border:1px solid var(--line);border-radius:7px;
+  font-size:11px;padding:3px 8px;cursor:pointer;color:var(--muted)}
+.card h2 .reload:hover{color:var(--brand);border-color:var(--brand)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{background:#f8faff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.kpi .v{font-size:16px;font-weight:800;margin-top:3px}
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tool{position:relative;display:flex;flex-direction:column;gap:4px;padding:12px;border:1px solid var(--line);
+  border-radius:11px;background:#fff;cursor:pointer;transition:.12s;min-height:62px;justify-content:center}
+.tool:hover{border-color:var(--brand);background:#fafbff;transform:translateY(-1px);text-decoration:none}
+.tool .tn{font-weight:700;font-size:13.5px;color:var(--ink)}
+.tool .td{font-size:11.5px;color:var(--muted)}
+.tool .uses{position:absolute;top:8px;right:8px;font-size:10px;color:var(--muted);background:#f1f4fa;border-radius:999px;padding:1px 6px}
+.tool .del{position:absolute;top:6px;left:8px;opacity:0;color:#cbd3e0;font-size:13px;cursor:pointer}
+.tool:hover .del{opacity:1}
+.addtool{border:1px dashed #c4cde0;color:var(--muted);align-items:center;text-align:center}
+.addtool:hover{color:var(--brand)}
+.flist{list-style:none;margin:0;padding:0}
+.flist li{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line)}
+.flist li:last-child{border-bottom:0}
+.ficon{width:30px;height:30px;border-radius:8px;background:var(--brand-soft);color:var(--brand);
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
+.fmeta{min-width:0}
+.fmeta .ft{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmeta .fd{font-size:11.5px;color:var(--muted)}
+.ftime{margin-left:auto;font-size:11.5px;color:var(--muted);white-space:nowrap}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+input[type=text],textarea,select{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 10px;font:inherit;color:var(--ink);background:#fff;resize:vertical}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--brand-soft);border-color:var(--brand)}
+label.fl{font-size:11.5px;color:var(--muted);font-weight:600;display:block;margin:0 0 3px}
+.btn{background:var(--brand);color:#fff;border:0;border-radius:9px;padding:10px 16px;font-weight:700;font-size:13.5px;cursor:pointer}
+.btn:hover{filter:brightness(1.05)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.mic{background:#fff;color:var(--amber);border:1px solid #f0dcb8}
+.btn.mic.on{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
+.autobox{background:#f8faff;border:1px dashed #cdd7ec;border-radius:9px;padding:8px 10px;font-size:12px;color:var(--muted);margin-bottom:8px}
+.autobox b{color:var(--ink)}
+.hint{font-size:11.5px;color:var(--muted);margin-top:6px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#15233b;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:var(--shadow);opacity:0;transition:.25s;pointer-events:none;z-index:50}
+.toast.show{opacity:1}
+.empty{color:var(--muted);font-size:12.5px;padding:10px 2px}
+.err{color:#b91c1c;font-size:12.5px;padding:8px 2px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--brand-soft);border-top-color:var(--brand);border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px}
+@keyframes s{to{transform:rotate(360deg)}}
+.usebar{display:flex;align-items:center;gap:8px;margin:5px 0}
+.usebar .un{width:120px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.usebar .ut{flex:1;height:9px;background:#eef2f9;border-radius:999px;overflow:hidden}
+.usebar .uf{height:100%;background:linear-gradient(90deg,#3b5bdb,#7048e8)}
+.usebar .uc{font-size:11.5px;color:var(--muted);width:26px;text-align:right}
+.foot{color:var(--muted);font-size:11.5px;text-align:center;margin-top:22px;line-height:1.6}
+/* login */
+.login{position:fixed;inset:0;background:linear-gradient(160deg,#eef1fb,#f7f8fc);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.loginbox{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:32px 28px;max-width:360px;width:100%;text-align:center}
+.loginbox .logo{margin:0 auto 14px}
+.loginbox h1{font-size:19px}
+.loginbox .sub{margin-bottom:20px}
+.loginbox .btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
+.loginmsg{color:#b91c1c;font-size:12.5px;margin-top:12px;min-height:16px}
+.loginhint{color:var(--muted);font-size:11.5px;margin-top:14px}
+.config-warn{background:#fdf2e2;border:1px solid #f0dcb8;color:#92560a;border-radius:10px;padding:10px 12px;font-size:12px;margin-top:14px;text-align:left}
+</style>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div class="login" id="login">
+  <div class="loginbox">
+    <div class="logo">Z</div>
+    <h1>Projekt Zeitkapsel</h1>
+    <div class="sub">Command Center</div>
+    <button class="btn" id="loginBtn">🔐 Mit Google anmelden</button>
+    <div class="loginmsg" id="loginMsg"></div>
+    <div class="loginhint">Zugang nur für freigegebene Konten.</div>
+    <div class="config-warn" id="configWarn" style="display:none"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="wrap" id="app" style="display:none">
+  <header class="top">
+    <div class="logo">Z</div>
+    <div>
+      <h1>Projekt Zeitkapsel · Command Center</h1>
+      <div class="sub">Kevin &amp; Dominik · Ziel: 4.000–5.000 € netto / Person / Monat</div>
+    </div>
+    <div class="userchip">
+      <span id="whoami"></span>
+      <button id="signOutBtn">Abmelden</button>
+    </div>
+    <div class="phasebadge" id="phaseBadge" title="Klicken zum Ändern">Phase 1 · Ideen sammeln</div>
+  </header>
+
+  <div class="card col-full" style="margin-top:16px">
+    <div class="kpis">
+      <div class="kpi"><div class="l">Teamziel / Jahr</div><div class="v">96–120k € netto</div></div>
+      <div class="kpi"><div class="l">Zeitbudget</div><div class="v">5–10 h / Woche p.P.</div></div>
+      <div class="kpi"><div class="l">Startkapital</div><div class="v">&lt; 500 € gesamt</div></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card col-full">
+      <h2>🚀 Schnellstart &amp; Tools</h2>
+      <div class="tools" id="tools"></div>
+      <div class="hint">Klicks werden mitgeloggt (Nutzungs-Statistik) – Datenbasis für euren späteren KI-Agenten.</div>
+    </div>
+
+    <div class="card">
+      <h2>📝 Heutiges Protokoll</h2>
+      <div class="autobox" id="autoTools">Heute genutzte Tools: <b>–</b></div>
+      <div class="row">
+        <div style="flex:1;min-width:120px"><label class="fl">Datum</label><input type="text" id="pDate" readonly></div>
+        <div style="flex:1;min-width:120px"><label class="fl">Wer schreibt?</label><select id="pWho"><option>Dominik</option><option>Kevin</option><option>Beide</option></select></div>
+      </div>
+      <label class="fl">📌 Was haben wir heute getan? / Sprachnachricht</label>
+      <textarea id="pText" rows="4" placeholder="Frei reinschreiben oder Mikrofon nutzen …"></textarea>
+      <label class="fl" style="margin-top:8px">✅ Ergebnisse / Erledigt (optional · eine Zeile pro Punkt)</label>
+      <textarea id="pDone" rows="2" placeholder="z. B. Nische eingegrenzt"></textarea>
+      <label class="fl" style="margin-top:8px">➡️ Nächste Schritte (optional · eine Zeile pro Punkt)</label>
+      <textarea id="pNext" rows="2" placeholder="z. B. Kevin testet Claude"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn mic" id="micBtn" type="button">🎙️ Diktieren</button>
+        <button class="btn" id="saveBtn" type="button">In Drive speichern</button>
+      </div>
+      <div class="hint">Wird als formatiertes Google-Doc im Drive-Ordner „Protokoll" abgelegt – immer gleiches Format.</div>
+    </div>
+
+    <div class="card">
+      <h2>📁 Ordner-Inhalt <span class="count" id="fcount">·</span><button class="reload" id="reloadFiles">↻</button></h2>
+      <div id="files"><div class="empty"><span class="spin"></span> Lade …</div></div>
+    </div>
+
+    <div class="card">
+      <h2>🗂️ Protokoll-Historie <span class="count" id="pcount">·</span><button class="reload" id="reloadHist">↻</button></h2>
+      <div id="history"><div class="empty"><span class="spin"></span> Lade …</div></div>
+    </div>
+
+    <div class="card">
+      <h2>📊 Tool-Nutzung (für KI-Agent)</h2>
+      <div id="usage"><div class="empty">Noch keine Klicks erfasst.</div></div>
+    </div>
+  </div>
+
+  <div class="foot">Eigene Website-Version · Login via Google · liest &amp; schreibt euren gemeinsamen Drive-Ordner direkt.</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   KONFIGURATION  –  HIER ANPASSEN
+   ============================================================ */
+const CONFIG = {
+  // 1) Aus der Google Cloud Console (OAuth-Client-ID, Typ "Web"):
+  CLIENT_ID: "HIER_DEINE_CLIENT_ID.apps.googleusercontent.com",
+  // 2) Nur diese Google-Konten dürfen rein (Kleinschreibung):
+  ALLOWED_EMAILS: ["dominik-voegele1999@gmx.de", "KEVINS-EMAIL@gmail.com"],
+  // 3) Eure Drive-Ordner (bereits eingetragen):
+  MAIN_FOLDER:  "1XbpjRogbw46N6_X7cq7zbnr1F3XYbW52",
+  PROTO_FOLDER: "16GhwD2UD3FGdE729jH_xPBtcS5eeB7Mb",
+};
+/* ============================================================ */
+
+const SCOPE = "openid email profile https://www.googleapis.com/auth/drive";
+let ACCESS_TOKEN = null, CURRENT_EMAIL = "", tokenClient = null;
+
+const $=s=>document.querySelector(s);
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function load(k,f){try{const v=JSON.parse(localStorage.getItem(k));return v??f}catch(e){return f}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
+/* ---------- Auth ---------- */
+function showLogin(msg){$("#app").style.display="none";$("#login").style.display="flex";$("#loginMsg").textContent=msg||"";}
+function bootAuth(){
+  if(CONFIG.CLIENT_ID.indexOf("HIER_DEINE")===0){
+    const w=$("#configWarn");w.style.display="block";
+    w.innerHTML="⚙️ <b>Setup nötig:</b> Trage oben im Code deine <b>CLIENT_ID</b> und Kevins E-Mail ein, dann funktioniert der Login.";
+    $("#loginBtn").disabled=true;return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CONFIG.CLIENT_ID, scope: SCOPE,
+    callback: async (resp)=>{
+      if(resp.error){showLogin("Anmeldung abgebrochen.");return;}
+      ACCESS_TOKEN = resp.access_token;
+      if(await checkUser()) enterApp();
+    }
+  });
+  // Bereits einmal angemeldet? Stillen Versuch starten.
+  if(localStorage.getItem("zk_signed")){ try{ tokenClient.requestAccessToken({prompt:""}); }catch(e){} }
+}
+async function checkUser(){
+  try{
+    const r=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+ACCESS_TOKEN}});
+    const u=await r.json();
+    CURRENT_EMAIL=(u.email||"").toLowerCase();
+    const allow=CONFIG.ALLOWED_EMAILS.map(e=>e.toLowerCase());
+    if(!allow.includes(CURRENT_EMAIL)){
+      ACCESS_TOKEN=null;localStorage.removeItem("zk_signed");
+      showLogin("Kein Zugriff für "+(u.email||"dieses Konto")+".");return false;
+    }
+    localStorage.setItem("zk_signed","1");
+    $("#whoami").textContent=u.email||"";
+    return true;
+  }catch(e){showLogin("Konnte Konto nicht prüfen.");return false;}
+}
+function signIn(){ if(!tokenClient){showLogin("Google lädt noch …");return;} tokenClient.requestAccessToken({prompt: localStorage.getItem("zk_signed")?"":"consent"}); }
+function signOut(){ ACCESS_TOKEN=null;localStorage.removeItem("zk_signed");showLogin(""); }
+function enterApp(){ $("#login").style.display="none";$("#app").style.display="block";renderTools();renderUsage();renderAutoTools();loadFiles();loadHistory(); }
+$("#loginBtn").onclick=signIn;
+$("#signOutBtn").onclick=signOut;
+
+/* ---------- Drive REST ---------- */
+async function driveList(folderId){
+  const q=encodeURIComponent("'"+folderId+"' in parents and trashed=false");
+  const fields=encodeURIComponent("files(id,name,mimeType,modifiedTime,createdTime,webViewLink,fileExtension)");
+  const url="https://www.googleapis.com/drive/v3/files?q="+q+"&fields="+fields+"&orderBy=modifiedTime desc&pageSize=100";
+  const r=await fetch(url,{headers:{Authorization:"Bearer "+ACCESS_TOKEN}});
+  if(r.status===401){signIn();throw new Error("Sitzung abgelaufen – bitte erneut anmelden.");}
+  if(!r.ok) throw new Error("Drive-Fehler "+r.status);
+  return (await r.json()).files||[];
+}
+async function driveCreateDoc(name,html){
+  const meta={name:name,parents:[CONFIG.PROTO_FOLDER],mimeType:"application/vnd.google-apps.document"};
+  const b="zk"+Date.now();
+  const body="--"+b+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+JSON.stringify(meta)+
+    "\r\n--"+b+"\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n"+html+"\r\n--"+b+"--";
+  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink",{
+    method:"POST",
+    headers:{Authorization:"Bearer "+ACCESS_TOKEN,"Content-Type":"multipart/related; boundary="+b},
+    body:body
+  });
+  if(r.status===401){signIn();throw new Error("Sitzung abgelaufen – bitte erneut anmelden.");}
+  if(!r.ok) throw new Error("Upload-Fehler "+r.status);
+  return r.json();
+}
+
+/* ---------- Phase ---------- */
+const PHASES=["Phase 0 · Rahmen","Phase 1 · Ideen sammeln","Phase 2 · Top-Ideen wählen","Phase 3 · Validierung","Phase 4 · Entscheidung","Phase 5 · Skalierung"];
+function renderPhase(){$("#phaseBadge").textContent=PHASES[load("zk_phase",1)];}
+$("#phaseBadge").onclick=()=>{let p=load("zk_phase",1);p=(p+1)%PHASES.length;save("zk_phase",p);renderPhase();};
+renderPhase();
+
+/* ---------- Tools ---------- */
+const DEFAULT_TOOLS=[
+  {n:"Masterdoc v3",d:"Projekt-Strategie",u:"https://drive.google.com/file/d/12YSu-GRWWnksUfvncN04Qto3_xFQ6uBP/view"},
+  {n:"Drive-Ordner",d:"Gemeinsamer Ordner",u:"https://drive.google.com/drive/folders/"+CONFIG.MAIN_FOLDER},
+  {n:"Quellen-Archiv",d:"Ideen & Recherche",u:"https://drive.google.com/drive/folders/1NVJ_v4iv7D956lIvzdEa6IXz96KwZrFj"},
+  {n:"Notion",d:"Workspace",u:"https://notion.so"},
+  {n:"ChatGPT/Claude",d:"KI-Assistent",u:"https://claude.ai"},
+];
+function getTools(){return load("zk_tools",DEFAULT_TOOLS);}
+function getUsage(){return load("zk_usage",{});}
+function logUse(name){const u=getUsage();const t=new Date().toISOString().slice(0,10);u[name]=u[name]||{total:0,days:{}};u[name].total++;u[name].days[t]=(u[name].days[t]||0)+1;save("zk_usage",u);renderUsage();renderAutoTools();}
+function renderTools(){
+  const tools=getTools(),u=getUsage(),box=$("#tools");box.innerHTML="";
+  tools.forEach(function(t,i){
+    const a=document.createElement("a");a.className="tool";a.href=t.u;a.target="_blank";a.rel="noopener";
+    a.innerHTML='<span class="del" title="Entfernen">✕</span><span class="uses">'+((u[t.n]&&u[t.n].total)||0)+'×</span><span class="tn">'+esc(t.n)+'</span><span class="td">'+esc(t.d||"")+'</span>';
+    a.addEventListener("click",function(e){if(e.target.classList.contains("del")){e.preventDefault();const ts=getTools();ts.splice(i,1);save("zk_tools",ts);renderTools();return;}logUse(t.n);});
+    box.appendChild(a);
+  });
+  const add=document.createElement("div");add.className="tool addtool";
+  add.innerHTML='<span class="tn">＋ Tool</span><span class="td">hinzufügen</span>';
+  add.onclick=function(){const n=prompt("Name des Tools:");if(!n)return;let url=prompt("Link (URL):","https://");if(!url)return;const d=prompt("Kurzbeschreibung (optional):","")||"";const ts=getTools();ts.push({n:n.trim(),d:d.trim(),u:url.trim()});save("zk_tools",ts);renderTools();};
+  box.appendChild(add);
+}
+function renderUsage(){
+  const u=getUsage(),box=$("#usage");const arr=Object.entries(u).sort((a,b)=>b[1].total-a[1].total);
+  if(!arr.length){box.innerHTML='<div class="empty">Noch keine Klicks erfasst.</div>';return;}
+  const max=arr[0][1].total;box.innerHTML="";
+  arr.forEach(function(e){const n=e[0],d=e[1];const r=document.createElement("div");r.className="usebar";
+    r.innerHTML='<div class="un" title="'+esc(n)+'">'+esc(n)+'</div><div class="ut"><div class="uf" style="width:'+Math.round(d.total/max*100)+'%"></div></div><div class="uc">'+d.total+'</div>';box.appendChild(r);});
+}
+function renderAutoTools(){
+  const u=getUsage(),today=new Date().toISOString().slice(0,10);
+  const used=Object.entries(u).filter(e=>e[1].days&&e[1].days[today]).map(e=>e[0]+" ("+e[1].days[today]+"×)");
+  $("#autoTools").innerHTML="Heute genutzte Tools: <b>"+(used.length?esc(used.join(", ")):"–")+"</b>";
+}
+
+/* ---------- File lists ---------- */
+function icon(mime,ext){if(mime&&mime.includes("folder"))return"📁";if(ext==="docx"||(mime&&mime.includes("word")))return"W";if(mime&&mime.includes("document"))return"D";if(mime&&mime.includes("spreadsheet"))return"S";if(mime&&mime.includes("presentation"))return"P";return"·";}
+function fdate(s){if(!s)return"";const d=new Date(s);return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"2-digit"})+" "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});}
+async function loadFiles(){
+  const box=$("#files");box.innerHTML='<div class="empty"><span class="spin"></span> Lade …</div>';
+  try{
+    const files=await driveList(CONFIG.MAIN_FOLDER);
+    $("#fcount").textContent=files.length;
+    if(!files.length){box.innerHTML='<div class="empty">Ordner ist leer.</div>';return;}
+    const ul=document.createElement("ul");ul.className="flist";
+    files.forEach(function(f){const li=document.createElement("li");
+      li.innerHTML='<div class="ficon">'+icon(f.mimeType,f.fileExtension)+'</div><div class="fmeta"><div class="ft"><a href="'+(f.webViewLink||"#")+'" target="_blank" rel="noopener">'+esc(f.name||"ohne Titel")+'</a></div><div class="fd">'+(f.mimeType&&f.mimeType.includes("folder")?"Ordner":esc(f.fileExtension||"Datei"))+'</div></div><div class="ftime">'+fdate(f.modifiedTime)+'</div>';
+      ul.appendChild(li);});
+    box.innerHTML="";box.appendChild(ul);
+  }catch(e){box.innerHTML='<div class="err">'+esc(e.message)+'</div>';}
+}
+async function loadHistory(){
+  const box=$("#history");box.innerHTML='<div class="empty"><span class="spin"></span> Lade …</div>';
+  try{
+    const files=await driveList(CONFIG.PROTO_FOLDER);
+    files.sort((a,b)=>(b.createdTime||"").localeCompare(a.createdTime||""));
+    $("#pcount").textContent=files.length;
+    if(!files.length){box.innerHTML='<div class="empty">Noch keine Protokoll-Einträge.</div>';return;}
+    const ul=document.createElement("ul");ul.className="flist";
+    files.forEach(function(f){const li=document.createElement("li");
+      li.innerHTML='<div class="ficon">📝</div><div class="fmeta"><div class="ft"><a href="'+(f.webViewLink||"#")+'" target="_blank" rel="noopener">'+esc(f.name||"Eintrag")+'</a></div><div class="fd">'+fdate(f.createdTime)+'</div></div>';
+      ul.appendChild(li);});
+    box.innerHTML="";box.appendChild(ul);
+  }catch(e){box.innerHTML='<div class="err">'+esc(e.message)+'</div>';}
+}
+$("#reloadFiles").onclick=loadFiles;
+$("#reloadHist").onclick=loadHistory;
+
+/* ---------- Protokoll-Format v1 (immer gleich) ---------- */
+function nowParts(){const d=new Date();const p=n=>String(n).padStart(2,"0");return{date:d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()),humanDate:d.toLocaleDateString("de-DE",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}),human:d.toLocaleDateString("de-DE",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})+" um "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})};}
+$("#pDate").value=nowParts().human;
+function liList(s){const items=String(s||"").split("\n").map(x=>x.trim()).filter(Boolean);if(!items.length)return '<ul><li><em>–</em></li></ul>';return "<ul>"+items.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>";}
+function paraHtml(s){return "<p>"+esc(s).replace(/\n/g,"<br>")+"</p>";}
+function buildProtocolHtml(np,who,text,done,next,usedToday){
+  return "<html><body>"+
+  '<h1 style="color:#3b5bdb;">📋 Tagesprotokoll · Projekt Zeitkapsel</h1>'+
+  '<p style="color:#64748b;"><strong>'+esc(np.humanDate)+'</strong></p>'+
+  '<table style="border-collapse:collapse;"><tr><td style="padding:4px 16px 4px 0;color:#64748b;"><strong>Autor</strong></td><td style="padding:4px 0;">'+esc(who)+'</td></tr>'+
+  '<tr><td style="padding:4px 16px 4px 0;color:#64748b;"><strong>Phase</strong></td><td style="padding:4px 0;">'+esc(PHASES[load("zk_phase",1)])+'</td></tr></table><hr>'+
+  '<h2 style="color:#15233b;">📌 Was heute passiert ist</h2>'+paraHtml(text)+
+  '<h2 style="color:#15233b;">✅ Ergebnisse / Erledigt</h2>'+liList(done)+
+  '<h2 style="color:#15233b;">➡️ Nächste Schritte</h2>'+liList(next)+
+  '<h2 style="color:#15233b;">🛠️ Genutzte Tools</h2><ul>'+usedToday+'</ul>'+
+  '<hr><p style="color:#94a3b8;"><em>Automatisch erstellt über das Zeitkapsel Command Center · einheitliches Format v1</em></p></body></html>";
+}
+async function saveProtocol(){
+  const text=$("#pText").value.trim();
+  if(!text){toast("Bitte erst etwas eintragen.");return;}
+  const btn=$("#saveBtn");btn.disabled=true;btn.textContent="Speichere …";
+  const np=nowParts(),who=$("#pWho").value,u=getUsage(),today=np.date;
+  const usedToday=Object.entries(u).filter(e=>e[1].days&&e[1].days[today]).map(e=>"<li>"+esc(e[0])+" ("+e[1].days[today]+"×)</li>").join("")||"<li><em>keine erfasst</em></li>";
+  const html=buildProtocolHtml(np,who,text,$("#pDone").value,$("#pNext").value,usedToday);
+  try{
+    await driveCreateDoc(np.date+" – Protokoll ("+who+")",html);
+    $("#pText").value="";$("#pDone").value="";$("#pNext").value="";
+    toast("✅ Protokoll in Drive gespeichert.");loadHistory();
+  }catch(e){toast("Fehler: "+e.message);}
+  finally{btn.disabled=false;btn.textContent="In Drive speichern";}
+}
+$("#saveBtn").onclick=saveProtocol;
+
+/* ---------- Voice ---------- */
+(function(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;const btn=$("#micBtn");
+  if(!SR){btn.disabled=true;btn.textContent="🎙️ Diktieren (n/v)";return;}
+  let rec=null,on=false;
+  btn.onclick=function(){if(on){rec&&rec.stop();return;}
+    try{rec=new SR();rec.lang="de-DE";rec.interimResults=true;rec.continuous=true;let base=$("#pText").value;
+      rec.onresult=function(e){let s="";for(let i=e.resultIndex;i<e.results.length;i++)s+=e.results[i][0].transcript;$("#pText").value=(base?base+" ":"")+s;};
+      rec.onerror=function(){toast("Mikrofon-Fehler oder kein Zugriff.");};
+      rec.onend=function(){on=false;btn.classList.remove("on");btn.textContent="🎙️ Diktieren";};
+      rec.start();on=true;btn.classList.add("on");btn.textContent="⏹ Stopp";
+    }catch(e){toast("Spracheingabe nicht verfügbar.");}};
+})();
+
+/* ---------- Start ---------- */
+window.onload=function(){ if(window.google&&google.accounts){bootAuth();} else { const iv=setInterval(function(){ if(window.google&&google.accounts){clearInterval(iv);bootAuth();} },200); } };
+</script>
+</body>
+</html>
