@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Zeitkapsel</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{color-scheme:light;
+ --bg:#f4f6fb;--card:#fff;--ink:#15233b;--muted:#64748b;--faint:#94a3b8;--line:#e3e8f0;
+ --brand:#2f86d8;--brand2:#5aa6e8;--brandsoft:#e8f2fc;--brandsoft2:#bcdcf6;--brandink:#0c3c66;
+ --side-bg:var(--brandsoft);--side-bg2:var(--brandsoft2);--side-ink:var(--brand);--side-ink2:var(--brandink);
+ --amber:#b45309;--ambersoft:#fdf2e2;--radius:14px;
+ --shadow:0 1px 2px rgba(20,35,59,.06),0 8px 24px rgba(20,35,59,.05);}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5}
+a{color:var(--brand);text-decoration:none}a:hover{text-decoration:underline}
+/* shell */
+.shell{display:flex;min-height:100vh}
+.side{width:210px;background:var(--brandsoft);padding:16px 12px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:9px;padding:4px 8px 16px}
+.brand .logo{width:32px;height:32px;border-radius:9px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+.brand b{font-size:15px;color:var(--brandink);font-weight:700;line-height:1.1}
+.navlabel{font-size:11px;color:var(--brand);padding:6px 8px 2px;letter-spacing:.3px}
+.nav{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;color:var(--brand);font-size:14px;cursor:pointer;border:0;background:none;width:100%;text-align:left;font:inherit}
+.nav:hover{background:var(--brandsoft2)}
+.nav.active{background:var(--brandsoft2);color:var(--brandink);font-weight:700}
+.nav .ic{width:18px;text-align:center;flex:none}
+.userchip{display:flex;align-items:center;gap:8px;padding:9px 8px;border-top:1px solid var(--brandsoft2);margin-top:6px}
+.userchip .av{width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;flex:none}
+.userchip .nm{font-size:12px;color:var(--brandink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.userchip button{background:none;border:0;color:var(--brand);cursor:pointer;font-size:12px;padding:2px}
+/* main */
+.main{flex:1;min-width:0;padding:20px 26px 60px;max-width:1080px}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.top h1{font-size:21px;margin:0;letter-spacing:-.2px}
+.top .sub{color:var(--muted);font-size:13px;margin-top:2px}
+.savechip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--brand);background:var(--brandsoft);padding:6px 11px;border-radius:99px;border:1px solid var(--brandsoft2)}
+.view{display:none}.view.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:#f8faff;border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.kpi .v{font-size:22px;font-weight:800;margin-top:4px}
+.kpi .v.sm{font-size:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;margin-bottom:16px}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.card h2 .reload{margin-left:auto;background:#fff;border:1px solid var(--line);border-radius:7px;font-size:11px;padding:3px 9px;cursor:pointer;color:var(--muted)}
+.progress{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.bar{flex:1;height:9px;background:#eef2f9;border-radius:99px;overflow:hidden}
+.bar > div{height:100%;background:var(--brand)}
+/* aktionsplan */
+.phase{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;background:#fff}
+.phhead{display:flex;align-items:center;gap:10px;padding:13px 16px;background:#f6f8fc;cursor:pointer}
+.phhead .ttl{font-weight:700;font-size:14.5px}
+.phhead .sub{font-size:12.5px;color:var(--muted)}
+.phhead .cnt{margin-left:auto;font-size:12px;color:var(--muted)}
+.task{border-top:1px solid var(--line)}
+.taskrow{display:flex;align-items:center;gap:12px;padding:11px 16px}
+.chk{width:21px;height:21px;border-radius:6px;border:1.6px solid #cbd3e0;flex:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;transition:.12s}
+.chk.on{background:var(--brand);border-color:var(--brand)}
+.tinfo{flex:1;min-width:0}
+.tinfo .tt{font-size:14px;font-weight:600}
+.tinfo .tt.done{font-weight:400;color:var(--muted);text-decoration:line-through}
+.tinfo .meta{font-size:11px;color:var(--faint);margin-top:1px}
+.badge{font-size:11px;padding:3px 9px;border-radius:99px;flex:none}
+.b-beide{background:#e1f5ee;color:#085041}.b-dominik{background:#eeedfe;color:#3c3489}.b-kevin{background:#e6f1fb;color:#0c447c}
+.exp{background:none;border:0;color:var(--faint);cursor:pointer;flex:none;font-size:16px;padding:2px}
+.detail{display:none;padding:0 16px 14px 49px}
+.detail.open{display:block}
+.detail .b{font-size:13px;color:var(--muted);line-height:1.75}
+.tip{display:flex;gap:7px;margin-top:8px;color:var(--amber);background:var(--ambersoft);padding:7px 10px;border-radius:9px;font-size:12.5px}
+.detail input{margin-top:9px;width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}
+/* protocol/tools shared */
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+label.fl{font-size:11.5px;color:var(--muted);font-weight:600;display:block;margin:0 0 3px}
+input[type=text],textarea,select{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 10px;font:inherit;color:var(--ink);background:#fff;resize:vertical}
+.btn{background:var(--brand);color:#fff;border:0;border-radius:9px;padding:10px 16px;font-weight:700;font-size:13.5px;cursor:pointer}
+.btn:hover{filter:brightness(1.06)}.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.mic{background:#fff;color:var(--amber);border:1px solid #f0dcb8}.btn.mic.on{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
+.flist{list-style:none;margin:0;padding:0}
+.flist li{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line)}
+.flist li:last-child{border-bottom:0}
+.ficon{width:30px;height:30px;border-radius:8px;background:var(--brandsoft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.fmeta{min-width:0}.fmeta .ft{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fmeta .fd{font-size:11.5px;color:var(--muted)}
+.ftime{margin-left:auto;font-size:11.5px;color:var(--muted);white-space:nowrap}
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tool{position:relative;display:flex;flex-direction:column;gap:4px;padding:12px;border:1px solid var(--line);border-radius:11px;background:#fff;cursor:pointer;min-height:60px;justify-content:center}
+.tool:hover{border-color:var(--brand);background:#fafcff;text-decoration:none}
+.tool .tn{font-weight:700;font-size:13.5px;color:var(--ink)}.tool .td{font-size:11.5px;color:var(--muted)}
+.tool .uses{position:absolute;top:8px;right:8px;font-size:10px;color:var(--muted);background:#f1f4fa;border-radius:99px;padding:1px 6px}
+.tool .del{position:absolute;top:6px;left:8px;opacity:0;color:#cbd3e0;font-size:13px;cursor:pointer}.tool:hover .del{opacity:1}
+.addtool{border:1px dashed #c4cde0;color:var(--muted);align-items:center;text-align:center}.addtool:hover{color:var(--brand)}
+.usebar{display:flex;align-items:center;gap:8px;margin:5px 0}
+.usebar .un{width:120px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.usebar .ut{flex:1;height:9px;background:#eef2f9;border-radius:99px;overflow:hidden}.usebar .uf{height:100%;background:var(--brand)}
+.usebar .uc{font-size:11.5px;color:var(--muted);width:26px;text-align:right}
+.empty{color:var(--muted);font-size:12.5px;padding:10px 2px}.err{color:#b91c1c;font-size:12.5px;padding:8px 2px}
+.hint{font-size:11.5px;color:var(--muted);margin-top:6px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--brandsoft);border-top-color:var(--brand);border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px}
+@keyframes s{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#15233b;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:var(--shadow);opacity:0;transition:.25s;pointer-events:none;z-index:50}
+.toast.show{opacity:1}
+.login{position:fixed;inset:0;background:#eef3f1;display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.loginbox{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:32px 28px;max-width:360px;width:100%;text-align:center}
+.loginbox .logo{width:40px;height:40px;border-radius:11px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;margin:0 auto 14px}
+.loginbox h1{font-size:19px;margin:0}.loginbox .s{color:var(--muted);font-size:13px;margin:2px 0 20px}
+.loginbox .btn{width:100%}.loginmsg{color:#b91c1c;font-size:12.5px;margin-top:12px;min-height:16px}
+.cfgwarn{background:var(--ambersoft);border:1px solid #f0dcb8;color:#92560a;border-radius:10px;padding:10px 12px;font-size:12px;margin-top:14px;text-align:left}
+@media(max-width:720px){.side{width:62px}.brand b,.navlabel,.nav span,.userchip .nm,.userchip button{display:none}.nav{justify-content:center}.main{padding:16px}.ovgrid{grid-template-columns:1fr!important}}
+/* --- Theming + Einstellungen --- */
+.side{background:var(--side-bg)}.navlabel{color:var(--side-ink)}.nav{color:var(--side-ink)}.nav:hover{background:var(--side-bg2)}.nav.active{background:var(--side-bg2);color:var(--side-ink2)}.userchip button{color:var(--side-ink)}
+.btn.ghost{background:var(--card);color:var(--brand);border:1px solid var(--brandsoft2)}
+.swatch{cursor:pointer}
+html.dark{--bg:#0f1722;--card:#16212e;--ink:#e7eef7;--muted:#93a6bc;--faint:#6a7c91;--line:#27374c;--shadow:0 1px 2px rgba(0,0,0,.35),0 10px 28px rgba(0,0,0,.4);--side-bg:#16212e;--side-bg2:#243246;--side-ink:#cdd9ea;--side-ink2:#ffffff}
+html.dark body{background:var(--bg)}
+html.dark .kpi{background:#1b2738;border-color:#27374c}
+html.dark .phase{background:var(--card);border-color:#27374c}
+html.dark .phhead{background:#1b2738;border-color:#27374c}
+html.dark .task{border-color:#27374c}
+html.dark .chk{border-color:#3a4d66}
+html.dark .tinfo .tt,html.dark .phhead .ttl{color:var(--ink)}
+html.dark .detail input{background:#101a26;color:var(--ink);border-color:#27374c}
+html.dark .bar,html.dark .ut,html.dark .usebar .ut{background:#27374c}
+html.dark input,html.dark textarea,html.dark select{background:#101a26;color:var(--ink);border-color:#27374c}
+html.dark .tool,html.dark .loginbox{background:#16212e}
+html.dark .login{background:#0b121b}
+html.dark .savechip,html.dark .card h2 .reload,html.dark .tool .uses{background:#1b2738}
+/* --- CRM / Pipeline --- */
+.board{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px}
+.col{flex:0 0 230px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
+.col h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:2px 4px 10px;display:flex;justify-content:space-between}
+.lead{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;background:var(--bg)}
+.lead .lf{font-weight:700;font-size:13.5px}
+.lead .lp{font-size:12px;color:var(--muted)}
+.lead .lw{font-size:12.5px;font-weight:700;color:var(--brand);margin-top:3px}
+.lead .ln{font-size:11.5px;color:var(--muted);margin-top:3px}
+.lead .lact{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.lead .lact button{font-size:11px;border:1px solid var(--line);background:var(--card);border-radius:6px;padding:2px 7px;cursor:pointer;color:var(--muted)}
+.lead .lact button:hover{color:var(--brand);border-color:var(--brand)}
+html.dark .lead{background:#101a26}
+</style>
+</head>
+<body>
+
+<div class="login" id="login">
+  <div class="loginbox">
+    <div class="logo">Z</div>
+    <h1>Project Zeitkapsel</h1>
+    <div class="s">Internes Dashboard</div>
+    <button class="btn" id="loginBtn">Mit Google anmelden</button>
+    <div class="loginmsg" id="loginMsg"></div>
+    <div class="cfgwarn" id="cfgWarn" style="display:none"></div>
+  </div>
+</div>
+
+<div class="shell" id="app" style="display:none">
+  <aside class="side">
+    <div class="brand"><div class="logo">Z</div><b>Project<br>Zeitkapsel</b></div>
+    <div class="navlabel">Bereiche</div>
+    <button class="nav" data-view="uebersicht"><span class="ic">◎</span><span>Übersicht</span></button>
+    <button class="nav" data-view="aktionsplan"><span class="ic">✓</span><span>Aktionsplan</span></button>
+    <button class="nav" data-view="protokoll"><span class="ic">📝</span><span>Protokoll</span></button>
+    <button class="nav" data-view="lernen"><span class="ic">🎓</span><span>Lernen</span></button>
+    <button class="nav" data-view="kosten"><span class="ic">€</span><span>Kosten</span></button>
+    <button class="nav" data-view="tools"><span class="ic">🚀</span><span>Tools</span></button>
+    <button class="nav" data-view="kunden"><span class="ic">👥</span><span>Kunden</span></button>
+    <div style="flex:1"></div>
+    <div class="userchip"><div class="av" id="uav">·</div><div class="nm" id="whoami"></div><button id="settingsBtn" title="Einstellungen" style="font-size:16px">⚙</button><button id="signOutBtn" title="Abmelden">Abmelden</button></div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <div><h1 id="vTitle">Übersicht</h1><div class="sub" id="vSub">Project Zeitkapsel · Kevin &amp; Dominik</div></div>
+      <span class="savechip" id="saveChip">Bereit</span>
+    </div>
+
+    <!-- ÜBERSICHT -->
+    <section class="view" id="view-uebersicht">
+      <div class="cards" id="ovKpis"></div>
+      <div class="card"><h2>Nächste offene Aufgaben</h2><div id="ovNext"></div></div>
+      <div class="ovgrid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card" style="margin:0"><h2>📊 Tool-Nutzung</h2><div id="ovUsage"><div class="empty">Noch keine Klicks.</div></div><div class="hint">Geteilt &amp; gespeichert · Datenbasis für einen KI-Agenten.</div></div>
+        <div class="card" style="margin:0"><h2>🗂️ Protokoll-History <button class="reload" id="ovReload">↻</button></h2><div id="ovProto"><div class="empty"><span class="spin"></span> Lade …</div></div></div>
+      </div>
+    </section>
+
+    <!-- AKTIONSPLAN -->
+    <section class="view" id="view-aktionsplan">
+      <div class="progress"><div class="bar"><div id="apFill" style="width:0%"></div></div><span style="font-size:12px;color:var(--muted)" id="apCount">–</span></div>
+      <div id="apPhases"></div>
+      <div class="hint">Haken setzen = sofort gespeichert (in Drive, für euch beide gleich) – inkl. Datum &amp; wer abgehakt hat.</div>
+    </section>
+
+    <!-- PROTOKOLL -->
+    <section class="view" id="view-protokoll">
+      <div class="card">
+        <h2>Heutiges Protokoll</h2>
+        <div class="row">
+          <div style="flex:1;min-width:120px"><label class="fl">Datum</label><input type="text" id="pDate" readonly></div>
+          <div style="flex:1;min-width:120px"><label class="fl">Wer schreibt?</label><select id="pWho"><option>Dominik</option><option>Kevin</option><option>Beide</option></select></div>
+        </div>
+        <label class="fl">📌 Was haben wir heute getan?</label>
+        <textarea id="pText" rows="4" placeholder="Frei reinschreiben oder diktieren …"></textarea>
+        <label class="fl" style="margin-top:8px">✅ Ergebnisse (optional · eine Zeile pro Punkt)</label>
+        <textarea id="pDone" rows="2"></textarea>
+        <label class="fl" style="margin-top:8px">➡️ Nächste Schritte (optional · eine Zeile pro Punkt)</label>
+        <textarea id="pNext" rows="2"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn mic" id="micBtn" type="button">🎙️ Diktieren</button><button class="btn" id="saveBtn" type="button">In Drive speichern</button></div>
+      </div>
+      <div class="card"><h2>Protokoll-Historie <button class="reload" id="histReload">↻</button></h2><div id="history"><div class="empty"><span class="spin"></span> Lade …</div></div></div>
+    </section>
+
+    <!-- LERNEN -->
+    <section class="view" id="view-lernen">
+      <div class="card">
+        <h2>🎓 Neues Lernprotokoll</h2>
+        <div class="row">
+          <div style="flex:1;min-width:150px"><label class="fl">Thema / Titel</label><input type="text" id="lTitle" placeholder="z. B. Make.com Grundlagen"></div>
+          <div style="flex:1;min-width:120px"><label class="fl">Wer?</label><select id="lWho"><option>Dominik</option><option>Kevin</option><option>Beide</option></select></div>
+        </div>
+        <label class="fl">Was gelernt? (eine Zeile pro Erkenntnis)</label>
+        <textarea id="lText" rows="4" placeholder="Wichtigste Erkenntnisse, Schritte, Aha-Momente …"></textarea>
+        <label class="fl" style="margin-top:8px">Quelle / Link (optional)</label>
+        <input type="text" id="lSrc" placeholder="https:// … (Video, Artikel, Tutorial)">
+        <div class="row" style="margin-top:8px"><button class="btn" id="lSave" type="button">Lernprotokoll speichern</button></div>
+        <div class="hint">Wird im Drive-Ordner „Lernprotokolle" abgelegt – getrennt von Tages-Protokollen und hochgeladenen Hilfestellungen.</div>
+      </div>
+      <div class="card"><h2>Lern-Historie <button class="reload" id="lReload">↻</button></h2><div id="lHistory"><div class="empty"><span class="spin"></span> Lade …</div></div></div>
+    </section>
+
+    <!-- KOSTEN -->
+    <section class="view" id="view-kosten">
+      <div class="cards">
+        <div class="kpi"><div class="l">Claude Dominik</div><div class="v sm">18 € / Mt · 216 €/J</div></div>
+        <div class="kpi"><div class="l">Claude Kevin</div><div class="v sm">11 € / Mt · 132 €/J</div></div>
+        <div class="kpi"><div class="l">Versicherungen (Plan)</div><div class="v sm">800–1.900 €/J</div></div>
+        <div class="kpi"><div class="l">Orientierung gesamt</div><div class="v sm">≈ 1.150–2.250 €/J</div></div>
+      </div>
+      <div class="card"><h2>Kostenübersicht</h2>
+        <p style="margin:0 0 10px;font-size:13.5px;color:var(--muted)">Die laufende Kostenliste (Tools + Versicherungs-Richtwerte) liegt als bearbeitbares Sheet im Drive-Ordner.</p>
+        <a class="btn" style="display:inline-block;text-decoration:none" href="https://docs.google.com/spreadsheets/d/1xva_aNpf0vvfk4TAtkR0HVuHWpO5fuNasKffX-TvmXg/edit" target="_blank" rel="noopener">Kostenfaktoren-Sheet öffnen</a>
+        <div class="tip" style="margin-top:14px"><span>⚠</span><span><b>Wichtig:</b> Versicherer decken nur die angemeldete Tätigkeit – eure Web-/IT-Tätigkeit muss aktiv eingeschlossen sein, sonst greift im Schadensfall nichts.</span></div>
+      </div>
+    </section>
+
+    <!-- TOOLS -->
+    <section class="view" id="view-tools">
+      <div class="card"><h2>🚀 Schnellstart</h2><div class="tools" id="tools"></div><div class="hint">Klicks werden geloggt – Datenbasis für einen späteren KI-Agenten.</div></div>
+      <div class="card"><h2>📊 Tool-Nutzung</h2><div id="usage"><div class="empty">Noch keine Klicks erfasst.</div></div></div>
+      <div class="card"><h2>📁 Drive-Ordner-Inhalt <button class="reload" id="filesReload">↻</button></h2><div id="files"><div class="empty"><span class="spin"></span> Lade …</div></div></div>
+    </section>
+
+    <!-- KUNDEN -->
+    <section class="view" id="view-kunden">
+      <div class="cards" id="crmKpis"></div>
+      <div class="card">
+        <h2>➕ Lead erfassen <button class="reload" id="crmReload">↻</button></h2>
+        <div class="row">
+          <div style="flex:2;min-width:150px"><label class="fl">Firma / Name</label><input type="text" id="cFirma"></div>
+          <div style="flex:1;min-width:130px"><label class="fl">Produkt</label><input type="text" id="cProdukt" placeholder="z. B. KI-Telefonassistent"></div>
+          <div style="flex:1;min-width:90px"><label class="fl">Wert (€)</label><input type="text" id="cWert" placeholder="799"></div>
+        </div>
+        <div class="row">
+          <div style="flex:1;min-width:130px"><label class="fl">Status</label><select id="cStatus"></select></div>
+          <div style="flex:2;min-width:150px"><label class="fl">Nächster Schritt</label><input type="text" id="cNext" placeholder="z. B. Demo vereinbaren"></div>
+        </div>
+        <input type="hidden" id="cId">
+        <div class="row"><button class="btn" id="cSave">Lead hinzufügen</button><button class="btn ghost" id="cCancel" style="display:none">Abbrechen</button></div>
+        <div class="hint">Gespeichert als crm_leads.json im Drive-Ordner „Dashboard-Daten" – für dich &amp; Kevin gleich, lädt automatisch.</div>
+      </div>
+      <div class="board" id="crmBoard"></div>
+    </section>
+
+    <!-- EINSTELLUNGEN -->
+    <section class="view" id="view-einstellungen">
+      <div class="card"><h2>🎨 Darstellung</h2>
+        <label class="fl">Modus</label>
+        <div class="row" id="modeRow"></div>
+        <label class="fl" style="margin-top:14px">Akzentfarbe</label>
+        <div class="tools" id="themeRow" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr))"></div>
+        <div class="hint">Diese Einstellungen gelten nur für dein Konto (Dominik bzw. Kevin) und werden in Drive gespeichert – auf jedem Gerät gleich.</div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const CONFIG = {
+  CLIENT_ID: "41724694969-jjiake1qt6nvmb7hpccmmqn80jt8u108.apps.googleusercontent.com",
+  ALLOWED_HASHES: ["f1080b0e4391333e409ce2411910028fb723b5f8da894feb614ae90303f75d29","d8f63b77c4775c8685708832360e3837cd32d1e169ff90019f19e27915e3957a"],
+  MAIN_FOLDER:"1XbpjRogbw46N6_X7cq7zbnr1F3XYbW52",
+  PROTO_FOLDER:"16GhwD2UD3FGdE729jH_xPBtcS5eeB7Mb",
+  DATA_FOLDER:"1l68OnbOg2mod7cP1N34sd92BCoh18Tts",
+  LERN_FOLDER:"1kTevBLtThLQFK9WurlRqgCuWENIuTiU5",
+  STATE_FILE:"project_zeitkapsel_state.json",
+  USAGE_FILE:"tool_nutzung.json",
+  CRM_FILE:"crm_leads.json",
+};
+const SCOPE="openid email profile https://www.googleapis.com/auth/drive";
+let ACCESS_TOKEN=null,CURRENT_EMAIL="",tokenClient=null,STATE={tasks:{}},saveTimer=null,USAGE={},usageTimer=null;
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const auth=()=>({Authorization:"Bearer "+ACCESS_TOKEN});
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
+function load(k,f){try{const v=JSON.parse(localStorage.getItem(k));return v??f}catch(e){return f}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function todayDE(){return new Date().toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});}
+function displayName(){const e=CURRENT_EMAIL;if(/voegele|dominik/.test(e))return "Dominik";if(/kuepper|kevin/.test(e))return "Kevin";return e||"?";}
+async function sha256hex(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
+
+/* ---------- Auth ---------- */
+function showLogin(m){$("#app").style.display="none";$("#login").style.display="flex";$("#loginMsg").textContent=m||"";}
+function bootAuth(){
+  if(CONFIG.CLIENT_ID.indexOf("HIER_DEINE")===0){const w=$("#cfgWarn");w.style.display="block";w.innerHTML="⚙️ Setup nötig: CLIENT_ID im Code eintragen.";$("#loginBtn").disabled=true;return;}
+  tokenClient=google.accounts.oauth2.initTokenClient({client_id:CONFIG.CLIENT_ID,scope:SCOPE,callback:async r=>{
+    if(r.error){showLogin("Anmeldung abgebrochen.");return;}ACCESS_TOKEN=r.access_token;if(await checkUser())enterApp();}});
+  if(localStorage.getItem("zk_signed")){try{tokenClient.requestAccessToken({prompt:""})}catch(e){}}
+}
+async function checkUser(){
+  try{const r=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:auth()});const u=await r.json();
+    CURRENT_EMAIL=(u.email||"").toLowerCase();const h=await sha256hex(CURRENT_EMAIL);
+    if(!CONFIG.ALLOWED_HASHES.includes(h)){ACCESS_TOKEN=null;localStorage.removeItem("zk_signed");showLogin("Kein Zugriff für dieses Konto.");return false;}
+    localStorage.setItem("zk_signed","1");$("#whoami").textContent=u.email||"";$("#uav").textContent=(displayName()[0]||"·");return true;
+  }catch(e){showLogin("Konnte Konto nicht prüfen.");return false;}
+}
+function signIn(){if(!tokenClient){showLogin("Google lädt noch …");return;}tokenClient.requestAccessToken({prompt:localStorage.getItem("zk_signed")?"":"consent"});}
+function signOut(){ACCESS_TOKEN=null;localStorage.removeItem("zk_signed");showLogin("");}
+$("#loginBtn").onclick=signIn;$("#signOutBtn").onclick=signOut;
+async function enterApp(){$("#login").style.display="none";$("#app").style.display="flex";
+  await loadSettings();
+  await loadUsage();renderTools();renderUsage();renderOvUsage();
+  await loadState();renderAktionsplan();renderUebersicht();loadHistory();loadProtoPreview();loadFiles();loadLernHistory();
+  await loadLeads();renderCrm();}
+
+/* ---------- Drive REST ---------- */
+async function driveList(folderId){
+  const q=encodeURIComponent("'"+folderId+"' in parents and trashed=false");
+  const f=encodeURIComponent("files(id,name,mimeType,modifiedTime,createdTime,webViewLink,fileExtension)");
+  const r=await fetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields="+f+"&orderBy=modifiedTime desc&pageSize=100",{headers:auth()});
+  if(r.status===401){signIn();throw new Error("Sitzung abgelaufen – bitte neu anmelden.");}
+  if(!r.ok)throw new Error("Drive-Fehler "+r.status);return (await r.json()).files||[];
+}
+async function driveFind(name,parent){
+  const q=encodeURIComponent("name = '"+name+"' and '"+(parent||CONFIG.MAIN_FOLDER)+"' in parents and trashed=false");
+  const r=await fetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,name)&pageSize=1",{headers:auth()});
+  if(!r.ok)return null;const j=await r.json();return (j.files&&j.files[0])||null;
+}
+async function driveReadText(id){const r=await fetch("https://www.googleapis.com/drive/v3/files/"+id+"?alt=media",{headers:auth()});if(!r.ok)return null;return r.text();}
+async function driveSaveJson(name,obj,parent){
+  const body=JSON.stringify(obj);const ex=await driveFind(name,parent);
+  if(ex){const r=await fetch("https://www.googleapis.com/upload/drive/v3/files/"+ex.id+"?uploadType=media",{method:"PATCH",headers:Object.assign(auth(),{"Content-Type":"application/json"}),body});return r.ok;}
+  const b="zk"+Date.now();const meta={name:name,parents:[parent||CONFIG.MAIN_FOLDER],mimeType:"application/json"};
+  const mp="--"+b+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+JSON.stringify(meta)+"\r\n--"+b+"\r\nContent-Type: application/json\r\n\r\n"+body+"\r\n--"+b+"--";
+  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",{method:"POST",headers:Object.assign(auth(),{"Content-Type":"multipart/related; boundary="+b}),body:mp});return r.ok;
+}
+async function driveCreateDoc(name,html,folder){
+  const meta={name:name,parents:[folder||CONFIG.PROTO_FOLDER],mimeType:"application/vnd.google-apps.document"};const b="zk"+Date.now();
+  const body="--"+b+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+JSON.stringify(meta)+"\r\n--"+b+"\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n"+html+"\r\n--"+b+"--";
+  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{method:"POST",headers:Object.assign(auth(),{"Content-Type":"multipart/related; boundary="+b}),body});
+  if(!r.ok)throw new Error("Upload-Fehler "+r.status);return r.json();
+}
+
+/* ---------- State (shared via Drive) ---------- */
+async function loadState(){
+  try{const ex=await driveFind(CONFIG.STATE_FILE,CONFIG.DATA_FOLDER);if(ex){const t=await driveReadText(ex.id);if(t)STATE=JSON.parse(t);}}catch(e){}
+  if(!STATE.tasks)STATE.tasks={};
+}
+async function loadUsage(){
+  try{const ex=await driveFind(CONFIG.USAGE_FILE,CONFIG.DATA_FOLDER);if(ex){const t=await driveReadText(ex.id);if(t)USAGE=JSON.parse(t);}}catch(e){}
+  if(!USAGE||typeof USAGE!=="object")USAGE=load("zk_usage",{});save("zk_usage",USAGE);
+}
+function saveStateSoon(){
+  $("#saveChip").textContent="Speichere …";
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{try{await driveSaveJson(CONFIG.STATE_FILE,STATE,CONFIG.DATA_FOLDER);$("#saveChip").innerHTML="✓ Gespeichert";}catch(e){$("#saveChip").textContent="Fehler beim Speichern";}},600);
+}
+
+/* ---------- Aktionsplan data ---------- */
+const PHASES=[
+ {t:"Phase 1 — Diese Woche",s:"Grundlagen legen"},
+ {t:"Phase 2 — Woche 2–3",s:"Angebot & Tools"},
+ {t:"Phase 3 — Woche 3–6",s:"Erste Kunden gewinnen"},
+ {t:"Phase 4 — Monat 2–3",s:"Stabilisieren & skalieren"},
+];
+const TASKS=[
+ {id:1,ph:0,o:"Beide",t:"Das erste echte Gespräch führen",b:["2 Stunden zusammensetzen — ohne Ablenkung","Wer macht Tech, wer macht Vertrieb?","Gewinnaufteilung: 50/50 oder anders?","Zeitbudget pro Woche je Person","Erstes Angebot (z. B. KI-Chatbot für Restaurants, 799 €)"],tip:"Antworten aufschreiben — das ist die Basis für den GbR-Vertrag."},
+ {id:2,ph:0,o:"Beide",t:"GbR-Vertrag aufsetzen",b:["Kostenlose Vorlage: gründerszene.de oder IHK","Ausfüllen: Namen, Adresse, Gewinnaufteilung, Rollen, Kündigung","Beide unterschreiben — je ein Original","Optional: Anwalt drüberschauen (~200–400 €)"],tip:"Mündliche Absprachen führen zu Streit, sobald Geld fließt."},
+ {id:3,ph:0,o:"Beide",t:"Gemeinsames Gewerbe anmelden",b:["Online über gewerbe-anmeldung.de oder lokales Gewerbeamt","Bezeichnung: „Entwicklung und Vermarktung von KI-Lösungen“","Beide als Gesellschafter eintragen","Kosten ca. 20–60 €","Bestätigung wird fürs Konto gebraucht"],tip:"Manche Städte bieten Online-Anmeldung — spart Zeit."},
+ {id:4,ph:0,o:"Beide",t:"Gemeinsames Geschäftskonto eröffnen",b:["Empfehlung: Kontist, Qonto oder Deutsche Bank Business","Online, in 1–2 Tagen aktiv","Beide als Kontoinhaber eintragen","Kosten 0–25 €/Monat","Alle Einnahmen NUR über dieses Konto"],tip:"Eigenes Konto macht die Buchhaltung 10x einfacher."},
+ {id:5,ph:1,o:"Beide",t:"Steuernummer für die GbR beantragen",b:["„Fragebogen zur steuerlichen Erfassung“ beim Finanzamt","Online über ELSTER oder persönlich","Kleinunternehmer (§ 19 UStG) — empfohlen zum Start","Dauert 2–6 Wochen"],tip:"Ohne Steuernummer keine Rechnung — früh machen!"},
+ {id:6,ph:1,o:"Kevin",t:"Notion-Workspace einrichten",b:["Gemeinsamen Notion-Workspace (kostenlos)","Anlegen: Kundenliste, Aufgaben-Board, Ideen, Dokumente","Mit Dominik teilen","Alle Infos hier rein — nicht per WhatsApp verlieren"],tip:"Notion ist euer gemeinsames Gehirn."},
+ {id:7,ph:1,o:"Kevin",t:"KI-Tools einrichten & kennenlernen",b:["ChatGPT Plus (20 €/Mo)","Claude Pro (20 €/Mo)","Make.com Account (Start kostenlos)","Erste Automatisierung: E-Mail → Notion-Aufgabe","5–10 h Tutorials (Make.com, ChatGPT API)"],tip:"Make.com per Drag & Drop — in einer Woche lernbar."},
+ {id:8,ph:1,o:"Dominik",t:"Vertriebsstrategie definieren",b:["Zielgruppe festlegen (z. B. Restaurants, Handwerk, Ärzte)","Liste mit 20 lokalen Unternehmen","LinkedIn-Profil auf „KI-Berater“ ausrichten","Elevator Pitch formulieren","Upwork-/Malt-Profil für erste Aufträge"],tip:"Lieber Experte für eine Branche als Allrounder."},
+ {id:9,ph:1,o:"Kevin",t:"Demo-Projekt bauen",b:["Echten, funktionierenden KI-Chatbot bauen","Beispiel: Chatbot fürs fiktive Restaurant (Tische, FAQ)","Oder: Anfragen per E-Mail sortieren","Das Demo ist euer Schaufenster"],tip:"Mit funktionierendem Demo schließt ihr 3x mehr ab."},
+ {id:10,ph:1,o:"Kevin",t:"Rechnungsvorlage erstellen",b:["Tool: Sevdesk (ab 7 €/Mo), Lexoffice oder Word","Pflicht: GbR-Name, Adresse, Steuernummer, Datum, Leistung, Betrag","Kleinunternehmer-Hinweis § 19 UStG","Rechnungsnummern fortlaufend"],tip:"Eine falsche Rechnung kann vom Kunden abgelehnt werden."},
+ {id:11,ph:2,o:"Dominik",t:"Erste 10 Unternehmen direkt ansprechen",b:["Persönlich vorbeigehen oder anrufen — nicht nur E-Mail","Einstieg: „Wir helfen, mit KI Zeit & Geld zu sparen.“","Demo live vor Ort zeigen","Ziel: Folgegespräch, nicht sofort verkaufen","Jeden Kontakt dokumentieren"],tip:"Die ersten 10 Neins sind normal. Beim 11. lernt ihr richtig."},
+ {id:12,ph:2,o:"Beide",t:"Ersten Auftrag annehmen",b:["Ersten Kunden günstiger (z. B. 50 %) gegen Bewertung","Top-Qualität liefern — bestes Marketing","Alles dokumentieren","Aktiv nach Google-Bewertung & Referenz fragen"],tip:"Ein begeisterter Erstkunde bringt 3 weitere."},
+ {id:13,ph:2,o:"Beide",t:"Wöchentliches Team-Meeting einführen",b:["Fester Termin (z. B. Mo 9:00, 45 Min)","Agenda: erreicht? 3 Prioritäten? Probleme?","Protokoll kurz & stichpunktartig","Monatlich: Zahlen anschauen"],tip:"Ohne feste Meetings läuft das Business nebenbei."},
+ {id:14,ph:2,o:"Beide",t:"Steuerberater kontaktieren",b:["Früh einen Steuerberater (kennt Gründer)","Kosten ~100–200 €/Mo oder 800–1.500 €/Jahr","Kümmert sich um Abschluss, Erklärung, Voranmeldungen","30 % jeder Einnahme separat zurücklegen","3 Angebote einholen"],tip:"Steuern selbst machen kostet am Ende mehr."},
+ {id:15,ph:2,o:"Dominik",t:"Content-Strategie starten",b:["1 LinkedIn-Post pro Woche","Themen: was funktioniert? welche Tools sparen Zeit?","Authentisch schlägt poliert","Ziel: 500+ relevante Follower in 3 Monaten"],tip:"LinkedIn ist im B2B der stärkste kostenlose Kanal."},
+ {id:16,ph:3,o:"Beide",t:"Wiederkehrende Einnahmen aufbauen",b:["Nach Erstprojekt monatliches Betreuungspaket anbieten","Beispiel: „KI-Assistent pflegen & optimieren, 199 €/Mo“","Ziel: 5 × 200 € = 1.000 € fix/Monat","Weniger Druck bei der Akquise"],tip:"Einmalverkäufe machen satt. Abos machen reich."},
+ {id:17,ph:3,o:"Kevin",t:"Prozesse dokumentieren",b:["Projekt von A–Z aufschreiben","Checkliste: Gespräch → Angebot → Projekt → Abnahme → Rechnung → Betreuung","Klarer Prozess = schneller liefern & delegieren"],tip:"Ein dokumentierter Prozess ist die Basis für Wachstum."},
+ {id:18,ph:3,o:"Beide",t:"Entscheidung: GmbH / UG?",b:["Ab ~50.000 € Jahresumsatz lohnt UG/GmbH","Vorteil: Haftungsbeschränkung, professionelleres Auftreten","Mit Steuerberater den Zeitpunkt besprechen","Noch kein Thema für Monat 1–3 — im Hinterkopf behalten"],tip:"Die GbR ist perfekt zum Starten — plant den nächsten Schritt."},
+];
+function badgeClass(o){return o==="Beide"?"b-beide":o==="Dominik"?"b-dominik":"b-kevin";}
+
+/* ---------- Aktionsplan render ---------- */
+function renderAktionsplan(){
+  const box=$("#apPhases");box.innerHTML="";
+  const open=load("zk_openph",{0:true,1:true,2:false,3:false});
+  PHASES.forEach((ph,pi)=>{
+    const tasks=TASKS.filter(t=>t.ph===pi);
+    const done=tasks.filter(t=>STATE.tasks[t.id]&&STATE.tasks[t.id].done).length;
+    const el=document.createElement("div");el.className="phase";
+    const head=document.createElement("div");head.className="phhead";
+    head.innerHTML='<span class="exp">'+(open[pi]?"▾":"▸")+'</span><span class="ttl">'+esc(ph.t)+'</span><span class="sub">'+esc(ph.s)+'</span><span class="cnt">'+done+" / "+tasks.length+'</span>';
+    head.onclick=()=>{open[pi]=!open[pi];save("zk_openph",open);renderAktionsplan();};
+    el.appendChild(head);
+    if(open[pi])tasks.forEach(t=>el.appendChild(taskEl(t)));
+    box.appendChild(el);
+  });
+  const total=TASKS.length,doneAll=TASKS.filter(t=>STATE.tasks[t.id]&&STATE.tasks[t.id].done).length;
+  $("#apFill").style.width=Math.round(doneAll/total*100)+"%";
+  $("#apCount").textContent=doneAll+" / "+total+" erledigt";
+}
+function taskEl(t){
+  const st=STATE.tasks[t.id]||{};const on=!!st.done;
+  const wrap=document.createElement("div");wrap.className="task";
+  const row=document.createElement("div");row.className="taskrow";
+  const chk=document.createElement("div");chk.className="chk"+(on?" on":"");chk.innerHTML=on?"✓":"";
+  chk.onclick=()=>toggleTask(t.id);
+  const info=document.createElement("div");info.className="tinfo";
+  info.innerHTML='<div class="tt'+(on?" done":"")+'">'+esc(t.t)+'</div>'+(on?'<div class="meta">erledigt am '+esc(st.date||"")+(st.by?" · "+esc(st.by):"")+'</div>':'');
+  const badge=document.createElement("span");badge.className="badge "+badgeClass(t.o);badge.textContent=t.o;
+  const exp=document.createElement("button");exp.className="exp";exp.textContent="▸";
+  const det=document.createElement("div");det.className="detail";
+  det.innerHTML='<div class="b">'+t.b.map(x=>"• "+esc(x)).join("<br>")+'</div><div class="tip"><span>💡</span><span>'+esc(t.tip)+'</span></div>';
+  const note=document.createElement("input");note.type="text";note.placeholder="Notiz hinzufügen …";note.value=(st.note||"");
+  note.onchange=()=>{const s=STATE.tasks[t.id]||{};s.note=note.value;STATE.tasks[t.id]=s;saveStateSoon();};
+  det.appendChild(note);
+  exp.onclick=()=>{det.classList.toggle("open");exp.textContent=det.classList.contains("open")?"▾":"▸";};
+  row.appendChild(chk);row.appendChild(info);row.appendChild(badge);row.appendChild(exp);
+  wrap.appendChild(row);wrap.appendChild(det);return wrap;
+}
+function toggleTask(id){
+  const s=STATE.tasks[id]||{};
+  if(s.done){STATE.tasks[id]=Object.assign({},s,{done:false,date:null,by:null});}
+  else{STATE.tasks[id]=Object.assign({},s,{done:true,date:todayDE(),by:displayName()});}
+  renderAktionsplan();renderUebersicht();saveStateSoon();
+}
+
+/* ---------- Übersicht ---------- */
+function renderUebersicht(){
+  const total=TASKS.length,done=TASKS.filter(t=>STATE.tasks[t.id]&&STATE.tasks[t.id].done).length;
+  const curPhase=PHASES[Math.min(3,(function(){for(let p=0;p<4;p++){const ts=TASKS.filter(t=>t.ph===p);if(ts.some(t=>!(STATE.tasks[t.id]&&STATE.tasks[t.id].done)))return p;}return 3;})())];
+  $("#ovKpis").innerHTML=
+   '<div class="kpi"><div class="l">Fortschritt</div><div class="v">'+Math.round(done/total*100)+'%</div></div>'+
+   '<div class="kpi"><div class="l">Erledigt</div><div class="v">'+done+' / '+total+'</div></div>'+
+   '<div class="kpi"><div class="l">Offen</div><div class="v">'+(total-done)+'</div></div>'+
+   '<div class="kpi"><div class="l">Aktuelle Phase</div><div class="v sm">'+esc(curPhase.t.replace("Phase ","P"))+'</div></div>';
+  const next=TASKS.filter(t=>!(STATE.tasks[t.id]&&STATE.tasks[t.id].done)).slice(0,5);
+  $("#ovNext").innerHTML=next.length?('<ul class="flist">'+next.map(t=>'<li><div class="ficon" style="font-size:11px">'+(t.ph+1)+'</div><div class="fmeta"><div class="ft">'+esc(t.t)+'</div><div class="fd">'+esc(PHASES[t.ph].t)+'</div></div><span class="badge '+badgeClass(t.o)+'" style="margin-left:auto">'+t.o+'</span></li>').join("")+'</ul>'):'<div class="empty">Alles erledigt – stark! 🎉</div>';
+}
+
+/* ---------- Protokoll ---------- */
+function liList(s){const it=String(s||"").split("\n").map(x=>x.trim()).filter(Boolean);if(!it.length)return "<ul><li><em>–</em></li></ul>";return "<ul>"+it.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>";}
+function paraHtml(s){return "<p>"+esc(s).replace(/\n/g,"<br>")+"</p>";}
+function buildProtocolHtml(human,who,text,done,next,tools){
+  return "<html><body>"+
+  '<h1 style="color:#0f6e56;">📋 Tagesprotokoll · Project Zeitkapsel</h1>'+
+  '<p style="color:#64748b;"><strong>'+esc(human)+'</strong></p>'+
+  '<table style="border-collapse:collapse;"><tr><td style="padding:4px 16px 4px 0;color:#64748b;"><strong>Autor</strong></td><td style="padding:4px 0;">'+esc(who)+'</td></tr></table><hr>'+
+  '<h2 style="color:#15233b;">📌 Was heute passiert ist</h2>'+paraHtml(text)+
+  '<h2 style="color:#15233b;">✅ Ergebnisse</h2>'+liList(done)+
+  '<h2 style="color:#15233b;">➡️ Nächste Schritte</h2>'+liList(next)+
+  '<hr><p style="color:#94a3b8;"><em>Erstellt über Project Zeitkapsel · einheitliches Format</em></p></body></html>';
+}
+$("#pDate").value=new Date().toLocaleDateString("de-DE",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})+" um "+new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+async function saveProtocol(){
+  const text=$("#pText").value.trim();if(!text){toast("Bitte erst etwas eintragen.");return;}
+  const btn=$("#saveBtn");btn.disabled=true;btn.textContent="Speichere …";
+  const human=$("#pDate").value,who=$("#pWho").value;
+  const html=buildProtocolHtml(human,who,text,$("#pDone").value,$("#pNext").value);
+  const title=new Date().toISOString().slice(0,10)+" – Protokoll ("+who+")";
+  try{await driveCreateDoc(title,html);$("#pText").value="";$("#pDone").value="";$("#pNext").value="";toast("✅ Protokoll gespeichert.");loadHistory();loadProtoPreview();}
+  catch(e){toast("Fehler: "+e.message);}finally{btn.disabled=false;btn.textContent="In Drive speichern";}
+}
+$("#saveBtn").onclick=saveProtocol;
+function fdate(s){if(!s)return"";const d=new Date(s);return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"2-digit"})+" "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});}
+async function loadHistory(){const box=$("#history");box.innerHTML='<div class="empty"><span class="spin"></span> Lade …</div>';
+  try{const f=(await driveList(CONFIG.PROTO_FOLDER));f.sort((a,b)=>(b.createdTime||"").localeCompare(a.createdTime||""));
+    if(!f.length){box.innerHTML='<div class="empty">Noch keine Einträge.</div>';return;}
+    box.innerHTML='<ul class="flist">'+f.map(x=>'<li><div class="ficon">📝</div><div class="fmeta"><div class="ft"><a href="'+(x.webViewLink||"#")+'" target="_blank" rel="noopener">'+esc(x.name)+'</a></div><div class="fd">'+fdate(x.createdTime)+'</div></div></li>').join("")+'</ul>';
+  }catch(e){box.innerHTML='<div class="err">'+esc(e.message)+'</div>';}
+}
+async function loadProtoPreview(){const box=$("#ovProto");try{const f=(await driveList(CONFIG.PROTO_FOLDER));f.sort((a,b)=>(b.createdTime||"").localeCompare(a.createdTime||""));
+  const top=f.slice(0,3);box.innerHTML=top.length?('<ul class="flist">'+top.map(x=>'<li><div class="ficon">📝</div><div class="fmeta"><div class="ft"><a href="'+(x.webViewLink||"#")+'" target="_blank" rel="noopener">'+esc(x.name)+'</a></div><div class="fd">'+fdate(x.createdTime)+'</div></div></li>').join("")+'</ul>'):'<div class="empty">Noch keine Einträge.</div>';
+}catch(e){box.innerHTML='<div class="err">'+esc(e.message)+'</div>';}}
+
+/* ---------- Lernen ---------- */
+async function saveLern(){
+  const title=$("#lTitle").value.trim(),text=$("#lText").value.trim();
+  if(!title&&!text){toast("Bitte Titel oder Inhalt eingeben.");return;}
+  const btn=$("#lSave");btn.disabled=true;btn.textContent="Speichere …";
+  const who=$("#lWho").value,src=$("#lSrc").value.trim();
+  const human=new Date().toLocaleDateString("de-DE",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
+  const html="<html><body>"+
+    '<h1 style="color:#0f6e56;">🎓 Lernprotokoll · '+esc(title||"Ohne Titel")+'</h1>'+
+    '<p style="color:#64748b;"><strong>'+esc(human)+' · '+esc(who)+'</strong></p><hr>'+
+    '<h2 style="color:#15233b;">Erkenntnisse</h2>'+liList(text)+
+    (src?'<h2 style="color:#15233b;">Quelle</h2><p><a href="'+esc(src)+'">'+esc(src)+'</a></p>':'')+
+    '<hr><p style="color:#94a3b8;"><em>Lernprotokoll · Project Zeitkapsel</em></p></body></html>';
+  const fname=new Date().toISOString().slice(0,10)+" – Lernen: "+(title||"Eintrag");
+  try{await driveCreateDoc(fname,html,CONFIG.LERN_FOLDER);$("#lTitle").value="";$("#lText").value="";$("#lSrc").value="";toast("✅ Lernprotokoll gespeichert.");loadLernHistory();}
+  catch(e){toast("Fehler: "+e.message);}finally{btn.disabled=false;btn.textContent="Lernprotokoll speichern";}
+}
+async function loadLernHistory(){const box=$("#lHistory");if(!box)return;box.innerHTML='<div class="empty"><span class="spin"></span> Lade …</div>';
+  try{const f=await driveList(CONFIG.LERN_FOLDER);f.sort((a,b)=>(b.createdTime||"").localeCompare(a.createdTime||""));
+    if(!f.length){box.innerHTML='<div class="empty">Noch keine Lernprotokolle.</div>';return;}
+    box.innerHTML='<ul class="flist">'+f.map(x=>'<li><div class="ficon">🎓</div><div class="fmeta"><div class="ft"><a href="'+(x.webViewLink||"#")+'" target="_blank" rel="noopener">'+esc(x.name)+'</a></div><div class="fd">'+fdate(x.createdTime)+'</div></div></li>').join("")+'</ul>';
+  }catch(e){box.innerHTML='<div class="err">'+esc(e.message)+'</div>';}
+}
+
+/* ---------- Tools ---------- */
+const DEFAULT_TOOLS=[
+ {n:"Masterdoc v3",d:"Projekt-Strategie",u:"https://drive.google.com/file/d/12YSu-GRWWnksUfvncN04Qto3_xFQ6uBP/view"},
+ {n:"Drive-Ordner",d:"Gemeinsamer Ordner",u:"https://drive.google.com/drive/folders/"+CONFIG.MAIN_FOLDER},
+ {n:"GitHub",d:"Website bearbeiten",u:"https://github.com/BB-Dominik/zeitkapsel"},
+];
+const getTools=()=>load("zk_tools",DEFAULT_TOOLS),getUsage=()=>USAGE;
+function logUse(n){const t=new Date().toISOString().slice(0,10);USAGE[n]=USAGE[n]||{total:0,days:{}};USAGE[n].total++;USAGE[n].days[t]=(USAGE[n].days[t]||0)+1;save("zk_usage",USAGE);renderUsage();renderOvUsage();clearTimeout(usageTimer);usageTimer=setTimeout(()=>{driveSaveJson(CONFIG.USAGE_FILE,USAGE,CONFIG.DATA_FOLDER).catch(()=>{});},800);}
+function renderTools(){const tools=getTools(),u=getUsage(),box=$("#tools");box.innerHTML="";
+  tools.forEach((t,i)=>{const a=document.createElement("a");a.className="tool";a.href=t.u;a.target="_blank";a.rel="noopener";
+    a.innerHTML='<span class="del" title="Entfernen">✕</span><span class="uses">'+((u[t.n]&&u[t.n].total)||0)+'×</span><span class="tn">'+esc(t.n)+'</span><span class="td">'+esc(t.d||"")+'</span>';
+    a.addEventListener("click",e=>{if(e.target.classList.contains("del")){e.preventDefault();const ts=getTools();ts.splice(i,1);save("zk_tools",ts);renderTools();return;}logUse(t.n);});box.appendChild(a);});
+  const add=document.createElement("div");add.className="tool addtool";add.innerHTML='<span class="tn">＋ Tool</span><span class="td">hinzufügen</span>';
+  add.onclick=()=>{const n=prompt("Name:");if(!n)return;const url=prompt("Link:","https://");if(!url)return;const d=prompt("Kurzbeschreibung:","")||"";const ts=getTools();ts.push({n:n.trim(),d:d.trim(),u:url.trim()});save("zk_tools",ts);renderTools();};box.appendChild(add);
+}
+function renderUsage(){const u=getUsage(),box=$("#usage"),arr=Object.entries(u).sort((a,b)=>b[1].total-a[1].total);
+  if(!arr.length){box.innerHTML='<div class="empty">Noch keine Klicks erfasst.</div>';return;}
+  const max=arr[0][1].total;box.innerHTML=arr.map(e=>'<div class="usebar"><div class="un">'+esc(e[0])+'</div><div class="ut"><div class="uf" style="width:'+Math.round(e[1].total/max*100)+'%"></div></div><div class="uc">'+e[1].total+'</div></div>').join("");}
+function renderOvUsage(){const box=$("#ovUsage");if(!box)return;const arr=Object.entries(getUsage()).sort((a,b)=>b[1].total-a[1].total).slice(0,5);if(!arr.length){box.innerHTML='<div class="empty">Noch keine Klicks.</div>';return;}const max=arr[0][1].total;box.innerHTML=arr.map(e=>'<div class="usebar"><div class="un">'+esc(e[0])+'</div><div class="ut"><div class="uf" style="width:'+Math.round(e[1].total/max*100)+'%"></div></div><div class="uc">'+e[1].total+'</div></div>').join("");}
+function icon(m,x){if(m&&m.includes("folder"))return"📁";if(x==="docx"||(m&&m.includes("word")))return"W";if(m&&m.includes("spreadsheet"))return"S";if(m&&m.includes("document"))return"D";return"·";}
+async function loadFiles(){const box=$("#files");box.innerHTML='<div class="empty"><span class="spin"></span> Lade …</div>';
+  try{const f=await driveList(CONFIG.MAIN_FOLDER);if(!f.length){box.innerHTML='<div class="empty">Ordner ist leer.</div>';return;}
+    box.innerHTML='<ul class="flist">'+f.map(x=>'<li><div class="ficon">'+icon(x.mimeType,x.fileExtension)+'</div><div class="fmeta"><div class="ft"><a href="'+(x.webViewLink||"#")+'" target="_blank" rel="noopener">'+esc(x.name)+'</a></div><div class="fd">'+(x.mimeType&&x.mimeType.includes("folder")?"Ordner":esc(x.fileExtension||"Datei"))+'</div></div><div class="ftime">'+fdate(x.modifiedTime)+'</div></li>').join("")+'</ul>';
+  }catch(e){box.innerHTML='<div class="err">'+esc(e.message)+'</div>';}
+}
+$("#ovReload").onclick=loadProtoPreview;$("#histReload").onclick=loadHistory;$("#filesReload").onclick=loadFiles;$("#lReload").onclick=loadLernHistory;$("#lSave").onclick=saveLern;
+
+/* ---------- Dokument-Öffnungen tracken (welche Docs öffnen wir öfter) ---------- */
+document.addEventListener("click",e=>{const a=e.target.closest(".flist a[href]");if(a){const nm=(a.textContent||"").trim();if(nm)logUse(nm);}},true);
+
+/* ---------- Voice ---------- */
+(function(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;const btn=$("#micBtn");
+  if(!SR){btn.disabled=true;btn.textContent="🎙️ Diktieren (n/v)";return;}let rec=null,on=false;
+  btn.onclick=()=>{if(on){rec&&rec.stop();return;}try{rec=new SR();rec.lang="de-DE";rec.interimResults=true;rec.continuous=true;let base=$("#pText").value;
+    rec.onresult=e=>{let s="";for(let i=e.resultIndex;i<e.results.length;i++)s+=e.results[i][0].transcript;$("#pText").value=(base?base+" ":"")+s;};
+    rec.onerror=()=>toast("Mikrofon-Fehler oder kein Zugriff.");rec.onend=()=>{on=false;btn.classList.remove("on");btn.textContent="🎙️ Diktieren";};
+    rec.start();on=true;btn.classList.add("on");btn.textContent="⏹ Stopp";}catch(e){toast("Spracheingabe nicht verfügbar.");}};
+})();
+
+/* ---------- CRM / Vertriebs-Pipeline (geteilt via Drive) ---------- */
+const STAGES=["Erstkontakt","Demo","Angebot","Kunde","Verloren"];
+let LEADS=[],leadsTimer=null;
+async function loadLeads(){try{const ex=await driveFind(CONFIG.CRM_FILE,CONFIG.DATA_FOLDER);if(ex){const t=await driveReadText(ex.id);if(t)LEADS=JSON.parse(t);}}catch(e){}if(!Array.isArray(LEADS))LEADS=[];}
+function saveLeadsSoon(){$("#saveChip").textContent="Speichere …";clearTimeout(leadsTimer);leadsTimer=setTimeout(async()=>{try{await driveSaveJson(CONFIG.CRM_FILE,LEADS,CONFIG.DATA_FOLDER);$("#saveChip").innerHTML="✓ Gespeichert";}catch(e){$("#saveChip").textContent="Fehler beim Speichern";}},600);}
+function eur(n){n=parseFloat(String(n).replace(",","."))||0;return n.toLocaleString("de-DE")+" €";}
+function crmInit(){const sel=$("#cStatus");if(sel&&!sel.options.length)STAGES.forEach(s=>{const o=document.createElement("option");o.textContent=s;sel.appendChild(o);});}
+function renderCrm(){
+ crmInit();
+ const openL=LEADS.filter(l=>l.status!=="Kunde"&&l.status!=="Verloren");
+ const pv=openL.reduce((a,l)=>a+(parseFloat(String(l.wert).replace(",","."))||0),0);
+ const kunden=LEADS.filter(l=>l.status==="Kunde").length;
+ const verloren=LEADS.filter(l=>l.status==="Verloren").length;
+ const win=(kunden+verloren)?Math.round(kunden/(kunden+verloren)*100):0;
+ const k=$("#crmKpis");if(k)k.innerHTML='<div class="kpi"><div class="l">Leads gesamt</div><div class="v">'+LEADS.length+'</div></div><div class="kpi"><div class="l">Pipeline-Wert offen</div><div class="v sm">'+eur(pv)+'</div></div><div class="kpi"><div class="l">Kunden</div><div class="v">'+kunden+'</div></div><div class="kpi"><div class="l">Win-Rate</div><div class="v">'+win+'%</div></div>';
+ const b=$("#crmBoard");if(!b)return;b.innerHTML="";
+ STAGES.forEach(st=>{const col=document.createElement("div");col.className="col";const items=LEADS.filter(l=>l.status===st);
+  col.innerHTML='<h3><span>'+esc(st)+'</span><span>'+items.length+'</span></h3>';
+  items.forEach(l=>{const d=document.createElement("div");d.className="lead";
+   d.innerHTML='<div class="lf">'+esc(l.firma||"—")+'</div>'+(l.produkt?'<div class="lp">'+esc(l.produkt)+'</div>':'')+(l.wert?'<div class="lw">'+eur(l.wert)+'</div>':'')+(l.next?'<div class="ln">▶ '+esc(l.next)+'</div>':'')+(l.by?'<div class="ln" style="color:var(--faint)">'+esc(l.by)+' · '+esc(l.updated||"")+'</div>':'');
+   const act=document.createElement("div");act.className="lact";const i=STAGES.indexOf(st);
+   const mk=(t,fn,tt)=>{const x=document.createElement("button");x.textContent=t;x.title=tt||"";x.onclick=fn;return x;};
+   if(i>0)act.appendChild(mk("◀",()=>moveLead(l.id,-1),"zurück"));
+   if(i<STAGES.length-1)act.appendChild(mk("▶",()=>moveLead(l.id,1),"weiter"));
+   act.appendChild(mk("✎",()=>editLead(l.id),"bearbeiten"));
+   act.appendChild(mk("✕",()=>delLead(l.id),"löschen"));
+   d.appendChild(act);col.appendChild(d);});
+  b.appendChild(col);});
+}
+function moveLead(id,dir){const l=LEADS.find(x=>x.id===id);if(!l)return;const i=STAGES.indexOf(l.status)+dir;if(i<0||i>=STAGES.length)return;l.status=STAGES[i];l.by=displayName();l.updated=todayDE();renderCrm();renderUebersicht&&renderUebersicht();saveLeadsSoon();}
+function delLead(id){if(!confirm("Lead wirklich löschen?"))return;LEADS=LEADS.filter(x=>x.id!==id);renderCrm();saveLeadsSoon();}
+function editLead(id){const l=LEADS.find(x=>x.id===id);if(!l)return;$("#cId").value=l.id;$("#cFirma").value=l.firma||"";$("#cProdukt").value=l.produkt||"";$("#cWert").value=l.wert||"";crmInit();$("#cStatus").value=l.status||STAGES[0];$("#cNext").value=l.next||"";$("#cSave").textContent="Speichern";$("#cCancel").style.display="";}
+function resetCrmForm(){$("#cId").value="";$("#cFirma").value="";$("#cProdukt").value="";$("#cWert").value="";crmInit();$("#cStatus").value=STAGES[0];$("#cNext").value="";$("#cSave").textContent="Lead hinzufügen";$("#cCancel").style.display="none";}
+function saveLead(){const firma=$("#cFirma").value.trim();if(!firma){toast("Bitte Firma/Name eingeben.");return;}const id=$("#cId").value;
+ const data={firma:firma,produkt:$("#cProdukt").value.trim(),wert:$("#cWert").value.trim(),status:$("#cStatus").value,next:$("#cNext").value.trim(),by:displayName(),updated:todayDE()};
+ if(id){const l=LEADS.find(x=>x.id===id);if(l)Object.assign(l,data);}else{data.id="L"+Date.now();data.created=todayDE();LEADS.push(data);}
+ resetCrmForm();renderCrm();saveLeadsSoon();toast("✅ Gespeichert.");}
+$("#cSave").onclick=saveLead;$("#cCancel").onclick=resetCrmForm;$("#crmReload").onclick=async()=>{await loadLeads();renderCrm();toast("Aktualisiert.");};
+
+/* ---------- Einstellungen (pro Konto) ---------- */
+const THEMES={
+ babyblau:{brand:"#2f86d8",brand2:"#5aa6e8",brandsoft:"#e8f2fc",brandsoft2:"#bcdcf6",brandink:"#0c3c66"},
+ tuerkis:{brand:"#0f6e56",brand2:"#1d9e75",brandsoft:"#e1f5ee",brandsoft2:"#9fe1cb",brandink:"#04342c"},
+ blau:{brand:"#2563eb",brand2:"#3b82f6",brandsoft:"#e6effe",brandsoft2:"#bcd4fb",brandink:"#0b3a8f"},
+ violett:{brand:"#7048e8",brand2:"#8b6cf0",brandsoft:"#eeeafe",brandsoft2:"#d2c6f7",brandink:"#3a2473"},
+};
+const THEME_NAMES={babyblau:"Babyblau",tuerkis:"Türkis",blau:"Blau",violett:"Violett"};
+let SETTINGS={theme:"babyblau",dark:false};
+function settingsKey(){return "zk_set_"+CURRENT_EMAIL;}
+function applySettings(){const t=THEMES[SETTINGS.theme]||THEMES.babyblau;const r=document.documentElement.style;
+ r.setProperty("--brand",t.brand);r.setProperty("--brand2",t.brand2);r.setProperty("--brandsoft",t.brandsoft);r.setProperty("--brandsoft2",t.brandsoft2);r.setProperty("--brandink",t.brandink);
+ document.documentElement.classList.toggle("dark",!!SETTINGS.dark);renderSettings();}
+async function loadSettings(){const l=load(settingsKey(),null);if(l)SETTINGS=Object.assign({theme:"babyblau",dark:false},l);applySettings();
+ try{const h=await sha256hex(CURRENT_EMAIL);const fn="settings_"+h.slice(0,16)+".json";const ex=await driveFind(fn,CONFIG.DATA_FOLDER);if(ex){const t=await driveReadText(ex.id);if(t){SETTINGS=Object.assign({theme:"babyblau",dark:false},JSON.parse(t));save(settingsKey(),SETTINGS);}}}catch(e){}
+ applySettings();}
+async function saveSettings(){save(settingsKey(),SETTINGS);applySettings();try{const h=await sha256hex(CURRENT_EMAIL);const fn="settings_"+h.slice(0,16)+".json";await driveSaveJson(fn,SETTINGS,CONFIG.DATA_FOLDER);}catch(e){}}
+function renderSettings(){
+ const mr=$("#modeRow");if(mr){mr.innerHTML="";[["hell","☀ Hell"],["dunkel","🌙 Dunkel"]].forEach(m=>{const active=(SETTINGS.dark?"dunkel":"hell")===m[0];const b=document.createElement("button");b.className="btn"+(active?"":" ghost");b.style.flex="1";b.textContent=m[1];b.onclick=()=>{SETTINGS.dark=(m[0]==="dunkel");saveSettings();};mr.appendChild(b);});}
+ const tr=$("#themeRow");if(tr){tr.innerHTML="";Object.keys(THEMES).forEach(k=>{const t=THEMES[k];const d=document.createElement("div");d.className="tool swatch";if(SETTINGS.theme===k){d.style.borderColor=t.brand;d.style.borderWidth="2px";}d.innerHTML='<span style="display:block;height:22px;border-radius:6px;background:'+t.brand+';margin-bottom:6px"></span><span class="tn">'+THEME_NAMES[k]+'</span>';d.onclick=()=>{SETTINGS.theme=k;saveSettings();};tr.appendChild(d);});}
+}
+$("#settingsBtn").onclick=()=>showView("einstellungen");
+
+/* ---------- Router ---------- */
+const TITLES={uebersicht:["Übersicht","Project Zeitkapsel · Kevin & Dominik"],aktionsplan:["Aktionsplan","Vom ersten Tag bis zum ersten Kunden"],protokoll:["Protokoll","Tagesprotokolle in Drive"],lernen:["Lernen","Lernprotokolle & Erkenntnisse"],kosten:["Kosten","Laufende & geplante Kostenfaktoren"],tools:["Tools","Schnellstart & Drive"],kunden:["Kunden","Leads & Aufträge"],einstellungen:["Einstellungen","Darstellung & Konto · pro Konto gespeichert"]};
+function showView(v){
+  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));
+  $("#view-"+v).classList.add("active");$("#vTitle").textContent=TITLES[v][0];$("#vSub").textContent=TITLES[v][1];
+  save("zk_view",v);
+}
+document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>showView(b.dataset.view));
+showView(load("zk_view","uebersicht"));
+
+window.onload=function(){if(window.google&&google.accounts){bootAuth();}else{const iv=setInterval(()=>{if(window.google&&google.accounts){clearInterval(iv);bootAuth();}},200);}};
+</script>
+</body>
+</html>
