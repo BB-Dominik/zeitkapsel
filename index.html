@@ -257,12 +257,15 @@ html.dark .lead{background:#101a26}
         <h2>➕ Lead erfassen <button class="reload" id="crmReload">↻</button></h2>
         <div class="row">
           <div style="flex:2;min-width:150px"><label class="fl">Firma / Name</label><input type="text" id="cFirma"></div>
-          <div style="flex:1;min-width:130px"><label class="fl">Produkt</label><input type="text" id="cProdukt" placeholder="z. B. KI-Telefonassistent"></div>
-          <div style="flex:1;min-width:90px"><label class="fl">Wert (€)</label><input type="text" id="cWert" placeholder="799"></div>
+          <div style="flex:2;min-width:130px"><label class="fl">Produkt</label><input type="text" id="cProdukt" placeholder="z. B. KI-Telefonassistent"></div>
         </div>
         <div class="row">
+          <div style="flex:1;min-width:90px"><label class="fl">Einmal (€)</label><input type="text" id="cWert" placeholder="z. B. 799"></div>
+          <div style="flex:1;min-width:90px"><label class="fl">Monatlich (€)</label><input type="text" id="cMonthly" placeholder="z. B. 199"></div>
           <div style="flex:1;min-width:130px"><label class="fl">Status</label><select id="cStatus"></select></div>
-          <div style="flex:2;min-width:150px"><label class="fl">Nächster Schritt</label><input type="text" id="cNext" placeholder="z. B. Demo vereinbaren"></div>
+        </div>
+        <div class="row">
+          <div style="flex:1;min-width:150px"><label class="fl">Nächster Schritt</label><input type="text" id="cNext" placeholder="z. B. Demo vereinbaren"></div>
         </div>
         <input type="hidden" id="cId">
         <div class="row"><button class="btn" id="cSave">Lead hinzufügen</button><button class="btn ghost" id="cCancel" style="display:none">Abbrechen</button></div>
@@ -571,17 +574,20 @@ function eur(n){n=parseFloat(String(n).replace(",","."))||0;return n.toLocaleStr
 function crmInit(){const sel=$("#cStatus");if(sel&&!sel.options.length)STAGES.forEach(s=>{const o=document.createElement("option");o.textContent=s;sel.appendChild(o);});}
 function renderCrm(){
  crmInit();
+ const num=v=>parseFloat(String(v==null?"":v).replace(",","."))||0;
  const openL=LEADS.filter(l=>l.status!=="Kunde"&&l.status!=="Verloren");
- const pv=openL.reduce((a,l)=>a+(parseFloat(String(l.wert).replace(",","."))||0),0);
- const kunden=LEADS.filter(l=>l.status==="Kunde").length;
+ const pv=openL.reduce((a,l)=>a+num(l.wert),0);
+ const kundenL=LEADS.filter(l=>l.status==="Kunde");
+ const kunden=kundenL.length;
+ const mrr=kundenL.reduce((a,l)=>a+num(l.mrr),0);
  const verloren=LEADS.filter(l=>l.status==="Verloren").length;
  const win=(kunden+verloren)?Math.round(kunden/(kunden+verloren)*100):0;
- const k=$("#crmKpis");if(k)k.innerHTML='<div class="kpi"><div class="l">Leads gesamt</div><div class="v">'+LEADS.length+'</div></div><div class="kpi"><div class="l">Pipeline-Wert offen</div><div class="v sm">'+eur(pv)+'</div></div><div class="kpi"><div class="l">Kunden</div><div class="v">'+kunden+'</div></div><div class="kpi"><div class="l">Win-Rate</div><div class="v">'+win+'%</div></div>';
+ const k=$("#crmKpis");if(k)k.innerHTML='<div class="kpi"><div class="l">Leads gesamt</div><div class="v">'+LEADS.length+'</div></div><div class="kpi"><div class="l">Pipeline offen (einmal)</div><div class="v sm">'+eur(pv)+'</div></div><div class="kpi"><div class="l">MRR laufend</div><div class="v sm">'+eur(mrr)+' / Mt</div></div><div class="kpi"><div class="l">Kunden</div><div class="v">'+kunden+'</div></div><div class="kpi"><div class="l">Win-Rate</div><div class="v">'+win+'%</div></div>';
  const b=$("#crmBoard");if(!b)return;b.innerHTML="";
  STAGES.forEach(st=>{const col=document.createElement("div");col.className="col";const items=LEADS.filter(l=>l.status===st);
   col.innerHTML='<h3><span>'+esc(st)+'</span><span>'+items.length+'</span></h3>';
   items.forEach(l=>{const d=document.createElement("div");d.className="lead";
-   d.innerHTML='<div class="lf">'+esc(l.firma||"—")+'</div>'+(l.produkt?'<div class="lp">'+esc(l.produkt)+'</div>':'')+(l.wert?'<div class="lw">'+eur(l.wert)+'</div>':'')+(l.next?'<div class="ln">▶ '+esc(l.next)+'</div>':'')+(l.by?'<div class="ln" style="color:var(--faint)">'+esc(l.by)+' · '+esc(l.updated||"")+'</div>':'');
+   d.innerHTML='<div class="lf">'+esc(l.firma||"—")+'</div>'+(l.produkt?'<div class="lp">'+esc(l.produkt)+'</div>':'')+((l.wert||l.mrr)?'<div class="lw">'+(l.wert?eur(l.wert)+' einmal':'')+(l.wert&&l.mrr?' · ':'')+(l.mrr?eur(l.mrr)+'/Mt':'')+'</div>':'')+(l.next?'<div class="ln">▶ '+esc(l.next)+'</div>':'')+(l.by?'<div class="ln" style="color:var(--faint)">'+esc(l.by)+' · '+esc(l.updated||"")+'</div>':'');
    const act=document.createElement("div");act.className="lact";const i=STAGES.indexOf(st);
    const mk=(t,fn,tt)=>{const x=document.createElement("button");x.textContent=t;x.title=tt||"";x.onclick=fn;return x;};
    if(i>0)act.appendChild(mk("◀",()=>moveLead(l.id,-1),"zurück"));
@@ -593,10 +599,10 @@ function renderCrm(){
 }
 function moveLead(id,dir){const l=LEADS.find(x=>x.id===id);if(!l)return;const i=STAGES.indexOf(l.status)+dir;if(i<0||i>=STAGES.length)return;l.status=STAGES[i];l.by=displayName();l.updated=todayDE();renderCrm();renderUebersicht&&renderUebersicht();saveLeadsSoon();}
 function delLead(id){if(!confirm("Lead wirklich löschen?"))return;LEADS=LEADS.filter(x=>x.id!==id);renderCrm();saveLeadsSoon();}
-function editLead(id){const l=LEADS.find(x=>x.id===id);if(!l)return;$("#cId").value=l.id;$("#cFirma").value=l.firma||"";$("#cProdukt").value=l.produkt||"";$("#cWert").value=l.wert||"";crmInit();$("#cStatus").value=l.status||STAGES[0];$("#cNext").value=l.next||"";$("#cSave").textContent="Speichern";$("#cCancel").style.display="";}
-function resetCrmForm(){$("#cId").value="";$("#cFirma").value="";$("#cProdukt").value="";$("#cWert").value="";crmInit();$("#cStatus").value=STAGES[0];$("#cNext").value="";$("#cSave").textContent="Lead hinzufügen";$("#cCancel").style.display="none";}
+function editLead(id){const l=LEADS.find(x=>x.id===id);if(!l)return;$("#cId").value=l.id;$("#cFirma").value=l.firma||"";$("#cProdukt").value=l.produkt||"";$("#cWert").value=l.wert||"";$("#cMonthly").value=l.mrr||"";crmInit();$("#cStatus").value=l.status||STAGES[0];$("#cNext").value=l.next||"";$("#cSave").textContent="Speichern";$("#cCancel").style.display="";}
+function resetCrmForm(){$("#cId").value="";$("#cFirma").value="";$("#cProdukt").value="";$("#cWert").value="";$("#cMonthly").value="";crmInit();$("#cStatus").value=STAGES[0];$("#cNext").value="";$("#cSave").textContent="Lead hinzufügen";$("#cCancel").style.display="none";}
 function saveLead(){const firma=$("#cFirma").value.trim();if(!firma){toast("Bitte Firma/Name eingeben.");return;}const id=$("#cId").value;
- const data={firma:firma,produkt:$("#cProdukt").value.trim(),wert:$("#cWert").value.trim(),status:$("#cStatus").value,next:$("#cNext").value.trim(),by:displayName(),updated:todayDE()};
+ const data={firma:firma,produkt:$("#cProdukt").value.trim(),wert:$("#cWert").value.trim(),mrr:$("#cMonthly").value.trim(),status:$("#cStatus").value,next:$("#cNext").value.trim(),by:displayName(),updated:todayDE()};
  if(id){const l=LEADS.find(x=>x.id===id);if(l)Object.assign(l,data);}else{data.id="L"+Date.now();data.created=todayDE();LEADS.push(data);}
  resetCrmForm();renderCrm();saveLeadsSoon();toast("✅ Gespeichert.");}
 $("#cSave").onclick=saveLead;$("#cCancel").onclick=resetCrmForm;$("#crmReload").onclick=async()=>{await loadLeads();renderCrm();toast("Aktualisiert.");};
