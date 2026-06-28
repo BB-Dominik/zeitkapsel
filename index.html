@@ -207,6 +207,22 @@ html.dark .lead{background:#101a26}
         <textarea id="pNext" rows="2"></textarea>
         <div class="row" style="margin-top:8px"><button class="btn mic" id="micBtn" type="button">🎙️ Diktieren</button><button class="btn" id="saveBtn" type="button">In Drive speichern</button></div>
       </div>
+      <div class="card">
+        <h2>⏱️ Arbeitszeit erfassen</h2>
+        <div class="row">
+          <div style="flex:1;min-width:120px"><label class="fl">Datum</label><input type="date" id="zDate"></div>
+          <div style="flex:1;min-width:120px"><label class="fl">Wer?</label><select id="zWho"><option>Dominik</option><option>Kevin</option><option>Beide</option></select></div>
+        </div>
+        <div class="row">
+          <div style="flex:1;min-width:90px"><label class="fl">Von</label><input type="time" id="zFrom"></div>
+          <div style="flex:1;min-width:90px"><label class="fl">Bis</label><input type="time" id="zTo"></div>
+          <div style="flex:2;min-width:140px"><label class="fl">Tätigkeit (optional)</label><input type="text" id="zNote" placeholder="z. B. Make.com gelernt"></div>
+        </div>
+        <div class="row" style="margin-top:8px"><button class="btn" id="zAdd" type="button">Zeit eintragen</button></div>
+        <div id="zSummary"></div>
+        <div id="zList" style="margin-top:10px"></div>
+        <div class="hint">Stunden werden je Person summiert · „Beide" zählt für Dominik UND Kevin · gespeichert in Drive (für euch beide gleich).</div>
+      </div>
       <div class="card"><h2>Protokoll-Historie <button class="reload" id="histReload">↻</button></h2><div id="history"><div class="empty"><span class="spin"></span> Lade …</div></div></div>
     </section>
 
@@ -334,7 +350,7 @@ $("#loginBtn").onclick=signIn;$("#signOutBtn").onclick=signOut;
 async function enterApp(){$("#login").style.display="none";$("#app").style.display="flex";
   await loadSettings();
   await loadUsage();renderTools();renderUsage();renderOvUsage();
-  await loadState();renderAktionsplan();renderUebersicht();loadHistory();loadProtoPreview();loadFiles();loadLernHistory();
+  await loadState();renderAktionsplan();renderUebersicht();renderHours();loadHistory();loadProtoPreview();loadFiles();loadLernHistory();
   await loadLeads();renderCrm();}
 
 /* ---------- Drive REST ---------- */
@@ -369,6 +385,7 @@ async function driveCreateDoc(name,html,folder){
 async function loadState(){
   try{const ex=await driveFind(CONFIG.STATE_FILE,CONFIG.DATA_FOLDER);if(ex){const t=await driveReadText(ex.id);if(t)STATE=JSON.parse(t);}}catch(e){}
   if(!STATE.tasks)STATE.tasks={};
+  if(!Array.isArray(STATE.hours))STATE.hours=[];
 }
 async function loadUsage(){
   try{const ex=await driveFind(CONFIG.USAGE_FILE,CONFIG.DATA_FOLDER);if(ex){const t=await driveReadText(ex.id);if(t)USAGE=JSON.parse(t);}}catch(e){}
@@ -501,6 +518,40 @@ async function loadHistory(){const box=$("#history");box.innerHTML='<div class="
 async function loadProtoPreview(){const box=$("#ovProto");try{const f=(await driveList(CONFIG.PROTO_FOLDER));f.sort((a,b)=>(b.createdTime||"").localeCompare(a.createdTime||""));
   const top=f.slice(0,3);box.innerHTML=top.length?('<ul class="flist">'+top.map(x=>'<li><div class="ficon">📝</div><div class="fmeta"><div class="ft"><a href="'+(x.webViewLink||"#")+'" target="_blank" rel="noopener">'+esc(x.name)+'</a></div><div class="fd">'+fdate(x.createdTime)+'</div></div></li>').join("")+'</ul>'):'<div class="empty">Noch keine Einträge.</div>';
 }catch(e){box.innerHTML='<div class="err">'+esc(e.message)+'</div>';}}
+
+/* ---------- Arbeitszeit ---------- */
+function fmtH(h){return (Math.round((Number(h)||0)*100)/100).toLocaleString("de-DE",{minimumFractionDigits:0,maximumFractionDigits:2})+" h";}
+function hoursBetween(f,t){if(!f||!t)return null;const a=f.split(":").map(Number),b=t.split(":").map(Number);let m=(b[0]*60+b[1])-(a[0]*60+a[1]);if(m<0)m+=1440;return m/60;}
+function addHours(){
+  const date=$("#zDate").value,who=$("#zWho").value,from=$("#zFrom").value,to=$("#zTo").value,note=$("#zNote").value.trim();
+  if(!date){toast("Bitte Datum wählen.");return;}
+  if(!from||!to){toast("Bitte Von- und Bis-Zeit wählen.");return;}
+  const h=hoursBetween(from,to);
+  if(h===null||h<=0){toast("Bis-Zeit muss nach Von-Zeit liegen.");return;}
+  if(!Array.isArray(STATE.hours))STATE.hours=[];
+  STATE.hours.push({id:"h"+Date.now(),date:date,who:who,from:from,to:to,h:h,note:note,by:displayName()});
+  $("#zNote").value="";$("#zFrom").value="";$("#zTo").value="";
+  renderHours();saveStateSoon();toast("✅ "+fmtH(h)+" für "+who+" eingetragen.");
+}
+function delHours(id){STATE.hours=(STATE.hours||[]).filter(x=>x.id!==id);renderHours();saveStateSoon();}
+function renderHours(){
+  const arr=(STATE.hours||[]);let d=0,k=0;
+  arr.forEach(e=>{const v=Number(e.h)||0;if(e.who==="Dominik"||e.who==="Beide")d+=v;if(e.who==="Kevin"||e.who==="Beide")k+=v;});
+  const sum=$("#zSummary");if(sum)sum.innerHTML='<div class="cards" style="margin-top:12px">'+
+    '<div class="kpi"><div class="l">Dominik gesamt</div><div class="v">'+fmtH(d)+'</div></div>'+
+    '<div class="kpi"><div class="l">Kevin gesamt</div><div class="v">'+fmtH(k)+'</div></div>'+
+    '<div class="kpi"><div class="l">Personenstunden</div><div class="v">'+fmtH(d+k)+'</div></div></div>';
+  const list=$("#zList");if(!list)return;
+  if(!arr.length){list.innerHTML='<div class="empty">Noch keine Zeiten erfasst.</div>';return;}
+  const sorted=arr.slice().sort((a,b)=>((b.date||"")+b.id).localeCompare((a.date||"")+a.id));
+  list.innerHTML='<ul class="flist">'+sorted.map(e=>{
+    const dd=e.date?String(e.date).split("-").reverse().join("."):"";
+    return '<li><div class="ficon">⏱️</div><div class="fmeta"><div class="ft"><span class="badge '+badgeClass(e.who)+'">'+esc(e.who)+'</span> '+fmtH(e.h)+(e.note?' · '+esc(e.note):'')+'</div><div class="fd">'+esc(dd)+' · '+esc(e.from)+'–'+esc(e.to)+'</div></div><span class="del zdel" data-id="'+esc(e.id)+'" title="Löschen" style="cursor:pointer;color:var(--muted);padding:0 8px;font-size:13px">✕</span></li>';
+  }).join("")+'</ul>';
+  list.querySelectorAll(".zdel").forEach(b=>b.onclick=()=>delHours(b.getAttribute("data-id")));
+}
+$("#zAdd").onclick=addHours;
+$("#zDate").value=new Date().toISOString().slice(0,10);
 
 /* ---------- Lernen ---------- */
 async function saveLern(){
