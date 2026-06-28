@@ -193,36 +193,28 @@ html.dark .lead{background:#101a26}
 
     <!-- PROTOKOLL -->
     <section class="view" id="view-protokoll">
+      <div class="cards" id="zSummary"></div>
       <div class="card">
         <h2>Heutiges Protokoll</h2>
         <div class="row">
           <div style="flex:1;min-width:120px"><label class="fl">Datum</label><input type="text" id="pDate" readonly></div>
-          <div style="flex:1;min-width:120px"><label class="fl">Wer schreibt?</label><select id="pWho"><option>Dominik</option><option>Kevin</option><option>Beide</option></select></div>
+          <div style="flex:1;min-width:120px"><label class="fl">Wer hat gearbeitet?</label><select id="pWho"><option>Dominik</option><option>Kevin</option><option>Beide</option></select></div>
         </div>
-        <label class="fl">📌 Was haben wir heute getan?</label>
+        <div class="row">
+          <div style="flex:1;min-width:90px"><label class="fl">Von *</label><input type="time" id="zFrom"></div>
+          <div style="flex:1;min-width:90px"><label class="fl">Bis *</label><input type="time" id="zTo"></div>
+          <div style="flex:1;min-width:90px"><label class="fl">Dauer</label><input type="text" id="zDur" readonly placeholder="– h"></div>
+        </div>
+        <label class="fl" style="margin-top:8px">📌 Was haben wir heute getan?</label>
         <textarea id="pText" rows="4" placeholder="Frei reinschreiben oder diktieren …"></textarea>
         <label class="fl" style="margin-top:8px">✅ Ergebnisse (optional · eine Zeile pro Punkt)</label>
         <textarea id="pDone" rows="2"></textarea>
         <label class="fl" style="margin-top:8px">➡️ Nächste Schritte (optional · eine Zeile pro Punkt)</label>
         <textarea id="pNext" rows="2"></textarea>
         <div class="row" style="margin-top:8px"><button class="btn mic" id="micBtn" type="button">🎙️ Diktieren</button><button class="btn" id="saveBtn" type="button">In Drive speichern</button></div>
+        <div class="hint">Arbeitszeit (Von/Bis) ist Pflicht – sie wird je Person summiert („Beide" zählt für Dominik UND Kevin) und mit im Protokoll gespeichert.</div>
       </div>
-      <div class="card">
-        <h2>⏱️ Arbeitszeit erfassen</h2>
-        <div class="row">
-          <div style="flex:1;min-width:120px"><label class="fl">Datum</label><input type="date" id="zDate"></div>
-          <div style="flex:1;min-width:120px"><label class="fl">Wer?</label><select id="zWho"><option>Dominik</option><option>Kevin</option><option>Beide</option></select></div>
-        </div>
-        <div class="row">
-          <div style="flex:1;min-width:90px"><label class="fl">Von</label><input type="time" id="zFrom"></div>
-          <div style="flex:1;min-width:90px"><label class="fl">Bis</label><input type="time" id="zTo"></div>
-          <div style="flex:2;min-width:140px"><label class="fl">Tätigkeit (optional)</label><input type="text" id="zNote" placeholder="z. B. Make.com gelernt"></div>
-        </div>
-        <div class="row" style="margin-top:8px"><button class="btn" id="zAdd" type="button">Zeit eintragen</button></div>
-        <div id="zSummary"></div>
-        <div id="zList" style="margin-top:10px"></div>
-        <div class="hint">Stunden werden je Person summiert · „Beide" zählt für Dominik UND Kevin · gespeichert in Drive (für euch beide gleich).</div>
-      </div>
+      <div class="card"><h2>⏱️ Erfasste Zeiten</h2><div id="zList"></div></div>
       <div class="card"><h2>Protokoll-Historie <button class="reload" id="histReload">↻</button></h2><div id="history"><div class="empty"><span class="spin"></span> Lade …</div></div></div>
     </section>
 
@@ -487,11 +479,13 @@ function renderUebersicht(){
 /* ---------- Protokoll ---------- */
 function liList(s){const it=String(s||"").split("\n").map(x=>x.trim()).filter(Boolean);if(!it.length)return "<ul><li><em>–</em></li></ul>";return "<ul>"+it.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>";}
 function paraHtml(s){return "<p>"+esc(s).replace(/\n/g,"<br>")+"</p>";}
-function buildProtocolHtml(human,who,text,done,next,tools){
+function buildProtocolHtml(human,who,text,done,next,zeit){
   return "<html><body>"+
   '<h1 style="color:#0f6e56;">📋 Tagesprotokoll · Project Zeitkapsel</h1>'+
   '<p style="color:#64748b;"><strong>'+esc(human)+'</strong></p>'+
-  '<table style="border-collapse:collapse;"><tr><td style="padding:4px 16px 4px 0;color:#64748b;"><strong>Autor</strong></td><td style="padding:4px 0;">'+esc(who)+'</td></tr></table><hr>'+
+  '<table style="border-collapse:collapse;"><tr><td style="padding:4px 16px 4px 0;color:#64748b;"><strong>Wer</strong></td><td style="padding:4px 0;">'+esc(who)+'</td></tr>'+
+  (zeit?'<tr><td style="padding:4px 16px 4px 0;color:#64748b;"><strong>Arbeitszeit</strong></td><td style="padding:4px 0;">'+esc(zeit)+'</td></tr>':'')+
+  '</table><hr>'+
   '<h2 style="color:#15233b;">📌 Was heute passiert ist</h2>'+paraHtml(text)+
   '<h2 style="color:#15233b;">✅ Ergebnisse</h2>'+liList(done)+
   '<h2 style="color:#15233b;">➡️ Nächste Schritte</h2>'+liList(next)+
@@ -500,11 +494,21 @@ function buildProtocolHtml(human,who,text,done,next,tools){
 $("#pDate").value=new Date().toLocaleDateString("de-DE",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})+" um "+new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
 async function saveProtocol(){
   const text=$("#pText").value.trim();if(!text){toast("Bitte erst etwas eintragen.");return;}
+  const from=$("#zFrom").value,to=$("#zTo").value;
+  if(!from||!to){toast("Bitte Von- und Bis-Zeit eintragen (Pflicht).");return;}
+  const h=hoursBetween(from,to);
+  if(h===null||h<=0){toast("Bis-Zeit muss nach Von-Zeit liegen.");return;}
   const btn=$("#saveBtn");btn.disabled=true;btn.textContent="Speichere …";
   const human=$("#pDate").value,who=$("#pWho").value;
-  const html=buildProtocolHtml(human,who,text,$("#pDone").value,$("#pNext").value);
-  const title=new Date().toISOString().slice(0,10)+" – Protokoll ("+who+")";
-  try{await driveCreateDoc(title,html);$("#pText").value="";$("#pDone").value="";$("#pNext").value="";toast("✅ Protokoll gespeichert.");loadHistory();loadProtoPreview();}
+  const zeit=who+" · "+from+"–"+to+" · "+fmtH(h);
+  const html=buildProtocolHtml(human,who,text,$("#pDone").value,$("#pNext").value,zeit);
+  const title=new Date().toISOString().slice(0,10)+" – Protokoll ("+who+", "+fmtH(h)+")";
+  try{await driveCreateDoc(title,html);
+    if(!Array.isArray(STATE.hours))STATE.hours=[];
+    STATE.hours.push({id:"h"+Date.now(),date:new Date().toISOString().slice(0,10),who:who,from:from,to:to,h:h,note:text.split("\n")[0].slice(0,60),by:displayName()});
+    saveStateSoon();renderHours();
+    $("#pText").value="";$("#pDone").value="";$("#pNext").value="";$("#zFrom").value="";$("#zTo").value="";$("#zDur").value="";
+    toast("✅ Protokoll + "+fmtH(h)+" gespeichert.");loadHistory();loadProtoPreview();}
   catch(e){toast("Fehler: "+e.message);}finally{btn.disabled=false;btn.textContent="In Drive speichern";}
 }
 $("#saveBtn").onclick=saveProtocol;
@@ -522,25 +526,15 @@ async function loadProtoPreview(){const box=$("#ovProto");try{const f=(await dri
 /* ---------- Arbeitszeit ---------- */
 function fmtH(h){return (Math.round((Number(h)||0)*100)/100).toLocaleString("de-DE",{minimumFractionDigits:0,maximumFractionDigits:2})+" h";}
 function hoursBetween(f,t){if(!f||!t)return null;const a=f.split(":").map(Number),b=t.split(":").map(Number);let m=(b[0]*60+b[1])-(a[0]*60+a[1]);if(m<0)m+=1440;return m/60;}
-function addHours(){
-  const date=$("#zDate").value,who=$("#zWho").value,from=$("#zFrom").value,to=$("#zTo").value,note=$("#zNote").value.trim();
-  if(!date){toast("Bitte Datum wählen.");return;}
-  if(!from||!to){toast("Bitte Von- und Bis-Zeit wählen.");return;}
-  const h=hoursBetween(from,to);
-  if(h===null||h<=0){toast("Bis-Zeit muss nach Von-Zeit liegen.");return;}
-  if(!Array.isArray(STATE.hours))STATE.hours=[];
-  STATE.hours.push({id:"h"+Date.now(),date:date,who:who,from:from,to:to,h:h,note:note,by:displayName()});
-  $("#zNote").value="";$("#zFrom").value="";$("#zTo").value="";
-  renderHours();saveStateSoon();toast("✅ "+fmtH(h)+" für "+who+" eingetragen.");
-}
-function delHours(id){STATE.hours=(STATE.hours||[]).filter(x=>x.id!==id);renderHours();saveStateSoon();}
+function updateDur(){const h=hoursBetween($("#zFrom").value,$("#zTo").value);$("#zDur").value=(h&&h>0)?fmtH(h):"";}
+function delHours(id){if(!confirm("Diesen Zeit-Eintrag löschen?"))return;STATE.hours=(STATE.hours||[]).filter(x=>x.id!==id);renderHours();saveStateSoon();}
 function renderHours(){
   const arr=(STATE.hours||[]);let d=0,k=0;
   arr.forEach(e=>{const v=Number(e.h)||0;if(e.who==="Dominik"||e.who==="Beide")d+=v;if(e.who==="Kevin"||e.who==="Beide")k+=v;});
-  const sum=$("#zSummary");if(sum)sum.innerHTML='<div class="cards" style="margin-top:12px">'+
+  const sum=$("#zSummary");if(sum)sum.innerHTML=
     '<div class="kpi"><div class="l">Dominik gesamt</div><div class="v">'+fmtH(d)+'</div></div>'+
     '<div class="kpi"><div class="l">Kevin gesamt</div><div class="v">'+fmtH(k)+'</div></div>'+
-    '<div class="kpi"><div class="l">Personenstunden</div><div class="v">'+fmtH(d+k)+'</div></div></div>';
+    '<div class="kpi"><div class="l">Personenstunden</div><div class="v">'+fmtH(d+k)+'</div></div>';
   const list=$("#zList");if(!list)return;
   if(!arr.length){list.innerHTML='<div class="empty">Noch keine Zeiten erfasst.</div>';return;}
   const sorted=arr.slice().sort((a,b)=>((b.date||"")+b.id).localeCompare((a.date||"")+a.id));
@@ -550,8 +544,7 @@ function renderHours(){
   }).join("")+'</ul>';
   list.querySelectorAll(".zdel").forEach(b=>b.onclick=()=>delHours(b.getAttribute("data-id")));
 }
-$("#zAdd").onclick=addHours;
-$("#zDate").value=new Date().toISOString().slice(0,10);
+$("#zFrom").oninput=updateDur;$("#zTo").oninput=updateDur;
 
 /* ---------- Lernen ---------- */
 async function saveLern(){
