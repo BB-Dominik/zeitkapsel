@@ -164,6 +164,7 @@ html.dark .lead{background:#101a26}
     <button class="nav" data-view="kosten"><span class="ic">€</span><span>Kosten</span></button>
     <button class="nav" data-view="tools"><span class="ic">🚀</span><span>Tools</span></button>
     <button class="nav" data-view="kunden"><span class="ic">👥</span><span>Kunden</span></button>
+    <button class="nav" data-view="vertrieb"><span class="ic">📈</span><span>Vertrieb</span></button>
     <div style="flex:1"></div>
     <div class="userchip"><div class="av" id="uav">·</div><div class="nm" id="whoami"></div><button id="settingsBtn" title="Einstellungen" style="font-size:16px">⚙</button><button id="signOutBtn" title="Abmelden">Abmelden</button></div>
   </aside>
@@ -189,6 +190,14 @@ html.dark .lead{background:#101a26}
       <div class="progress"><div class="bar"><div id="apFill" style="width:0%"></div></div><span style="font-size:12px;color:var(--muted)" id="apCount">–</span></div>
       <div id="apPhases"></div>
       <div class="hint">Haken setzen = sofort gespeichert (in Drive, für euch beide gleich) – inkl. Datum &amp; wer abgehakt hat.</div>
+    </section>
+
+    <!-- VERTRIEB -->
+    <section class="view" id="view-vertrieb">
+      <div class="progress"><div class="bar"><div id="vpFill" style="width:0%"></div></div><span style="font-size:12px;color:var(--muted)" id="vpCount">–</span></div>
+      <div class="card" style="margin-bottom:14px"><h2>🎯 Deine Wochen-Routine</h2><div class="hint" style="margin-top:0">Richtwert pro Woche: <b>10 neue Erstkontakte → 3 Demos → 1 Angebot</b>. Konstanz schlägt Aktionismus – lieber jede Woche ein paar als einmal viele.</div></div>
+      <div id="vpPhases"></div>
+      <div class="hint">Dein Vertriebs-Fahrplan · Schritte abhaken = sofort in Drive gespeichert (für euch beide).</div>
     </section>
 
     <!-- PROTOKOLL -->
@@ -342,7 +351,7 @@ $("#loginBtn").onclick=signIn;$("#signOutBtn").onclick=signOut;
 async function enterApp(){$("#login").style.display="none";$("#app").style.display="flex";
   await loadSettings();
   await loadUsage();renderTools();renderUsage();renderOvUsage();
-  await loadState();renderAktionsplan();renderUebersicht();renderHours();loadHistory();loadProtoPreview();loadFiles();loadLernHistory();
+  await loadState();renderAktionsplan();renderUebersicht();renderHours();renderVertrieb();loadHistory();loadProtoPreview();loadFiles();loadLernHistory();
   await loadLeads();renderCrm();}
 
 /* ---------- Drive REST ---------- */
@@ -378,6 +387,7 @@ async function loadState(){
   try{const ex=await driveFind(CONFIG.STATE_FILE,CONFIG.DATA_FOLDER);if(ex){const t=await driveReadText(ex.id);if(t)STATE=JSON.parse(t);}}catch(e){}
   if(!STATE.tasks)STATE.tasks={};
   if(!Array.isArray(STATE.hours))STATE.hours=[];
+  if(!STATE.vertrieb||typeof STATE.vertrieb!=="object")STATE.vertrieb={};
 }
 async function loadUsage(){
   try{const ex=await driveFind(CONFIG.USAGE_FILE,CONFIG.DATA_FOLDER);if(ex){const t=await driveReadText(ex.id);if(t)USAGE=JSON.parse(t);}}catch(e){}
@@ -474,6 +484,67 @@ function renderUebersicht(){
    '<div class="kpi"><div class="l">Aktuelle Phase</div><div class="v sm">'+esc(curPhase.t.replace("Phase ","P"))+'</div></div>';
   const next=TASKS.filter(t=>!(STATE.tasks[t.id]&&STATE.tasks[t.id].done)).slice(0,5);
   $("#ovNext").innerHTML=next.length?('<ul class="flist">'+next.map(t=>'<li><div class="ficon" style="font-size:11px">'+(t.ph+1)+'</div><div class="fmeta"><div class="ft">'+esc(t.t)+'</div><div class="fd">'+esc(PHASES[t.ph].t)+'</div></div><span class="badge '+badgeClass(t.o)+'" style="margin-left:auto">'+t.o+'</span></li>').join("")+'</ul>'):'<div class="empty">Alles erledigt – stark! 🎉</div>';
+}
+
+/* ---------- Vertrieb (Fahrplan, geteilt via Drive) ---------- */
+const VPHASES=[
+ {t:"Phase 1 — Fundament & Zielgruppe",g:"Bevor du verkaufst: wissen, WEN du ansprichst.",s:[
+   "Ideale Zielkunden festlegen: Handwerksbetriebe mit 3–20 Mitarbeitern, die oft Anrufe verpassen (Elektrik, SHK/Heizung, Dachdecker, Maler, Tischler).",
+   "Liste mit 30–50 lokalen Betrieben aufbauen (Google Maps, Branchenbuch, Website-Recherche).",
+   "Wertversprechen in EINEM Satz: „Ihr verpasst keinen Anruf mehr – unser KI-Assistent nimmt jeden Anruf an, beantwortet Standardfragen und trägt Termine ein.“",
+   "Demo-Telefonnummer bereithalten, mit der du den Assistenten live vorführen kannst.",
+   "Online-Profil (LinkedIn/Insta) auf „KI für Handwerk“ ausrichten."]},
+ {t:"Phase 2 — Erstkontakt & Akquise",g:"Pipeline füllen. Ziel ist der Demo-Termin, NICHT der sofortige Verkauf.",s:[
+   "Wochenziel setzen: z. B. 10 neue Erstkontakte pro Woche (Anruf, Vor-Ort-Besuch oder kurze E-Mail).",
+   "Aufhänger nutzen: „Wie viele Anrufe verpasst ihr in der Woche, wenn ihr auf der Baustelle seid?“",
+   "Jeden Kontakt sofort ins CRM eintragen (Stufe „Erstkontakt“).",
+   "Follow-up-Regel: nach 2–3 Tagen einmal freundlich nachfassen.",
+   "Ziel jedes Erstkontakts: einen kurzen Demo-Termin vereinbaren."]},
+ {t:"Phase 3 — Demo & Bedarf",g:"Zeigen statt erklären. Den Schmerz in Euro sichtbar machen.",s:[
+   "Live-Demo: Betrieb ruft die Demo-Nummer an und erlebt den KI-Assistenten selbst.",
+   "Bedarf aufnehmen: Wie viele Anrufe am Tag? Wer geht ran? Was passiert mit verpassten Anrufen?",
+   "Nutzen in Euro rechnen: „Ein verpasster Auftrag = X €. Wie oft passiert das?“",
+   "CRM auf Stufe „Demo“ ziehen und nächsten Schritt notieren."]},
+ {t:"Phase 4 — Angebot",g:"Klar, einfach, mit Rechenbeispiel.",s:[
+   "Angebot präsentieren: 1.000 € Setup + 299 €/Monat (oder euer aktueller Preis).",
+   "Rechenbeispiel zeigen: „Schon ein gewonnener Auftrag im Monat zahlt das mehrfach.“",
+   "Saubere, schöne Angebots-PDF schicken.",
+   "Verbindlichen nächsten Schritt vereinbaren (Entscheidung bis Datum X).",
+   "CRM auf Stufe „Angebot“."]},
+ {t:"Phase 5 — Abschluss & Übergabe",g:"Einwände lösen, abschließen, sauber an Kevin übergeben.",s:[
+   "Typische Einwände vorbereiten: Preis, „brauche ich nicht“, Datenschutz (AVV zeigen).",
+   "Abschluss machen: Auftrag/Vertrag unterschreiben lassen.",
+   "Technische Einrichtung an Kevin übergeben (alle Kunden-Infos weitergeben).",
+   "CRM auf Stufe „Kunde“."]},
+ {t:"Phase 6 — Betreuung & Wachstum",g:"Zufriedene Kunden bringen die nächsten.",s:[
+   "Nach ~2 Wochen nachfragen: läuft alles rund? Zufriedenheit sichern.",
+   "Um Google-Bewertung und eine Empfehlung bitten.",
+   "Upsell anbieten: weitere Automatisierungen / monatliche Optimierung.",
+   "Referenz/Erfolgsgeschichte für neue Akquise nutzen."]}
+];
+function renderVertrieb(){
+  const box=$("#vpPhases");if(!box)return;box.innerHTML="";
+  const st=STATE.vertrieb||{};let total=0,done=0;
+  VPHASES.forEach((ph,pi)=>{
+    const el=document.createElement("div");el.className="phase";
+    const pdone=ph.s.filter((_,si)=>st["v"+pi+"_"+si]).length;
+    const head=document.createElement("div");head.className="phhead";
+    head.innerHTML='<span class="ttl">'+esc(ph.t)+'</span><span class="sub">'+esc(ph.g)+'</span><span class="cnt">'+pdone+" / "+ph.s.length+'</span>';
+    el.appendChild(head);
+    ph.s.forEach((step,si)=>{
+      total++;const key="v"+pi+"_"+si;const on=!!st[key];if(on)done++;
+      const wrap=document.createElement("div");wrap.className="task";
+      const row=document.createElement("div");row.className="taskrow";
+      const chk=document.createElement("div");chk.className="chk"+(on?" on":"");chk.innerHTML=on?"✓":"";
+      chk.onclick=()=>{const s2=STATE.vertrieb||{};if(s2[key])delete s2[key];else s2[key]=true;STATE.vertrieb=s2;renderVertrieb();saveStateSoon();};
+      const info=document.createElement("div");info.className="tinfo";
+      info.innerHTML='<div class="tt'+(on?" done":"")+'">'+esc(step)+'</div>';
+      row.appendChild(chk);row.appendChild(info);wrap.appendChild(row);el.appendChild(wrap);
+    });
+    box.appendChild(el);
+  });
+  if($("#vpFill"))$("#vpFill").style.width=(total?Math.round(done/total*100):0)+"%";
+  if($("#vpCount"))$("#vpCount").textContent=done+" / "+total+" Schritte";
 }
 
 /* ---------- Protokoll ---------- */
@@ -675,7 +746,7 @@ function renderSettings(){
 $("#settingsBtn").onclick=()=>showView("einstellungen");
 
 /* ---------- Router ---------- */
-const TITLES={uebersicht:["Übersicht","Project Zeitkapsel · Kevin & Dominik"],aktionsplan:["Aktionsplan","Vom ersten Tag bis zum ersten Kunden"],protokoll:["Protokoll","Tagesprotokolle in Drive"],lernen:["Lernen","Lernprotokolle & Erkenntnisse"],kosten:["Kosten","Laufende & geplante Kostenfaktoren"],tools:["Tools","Schnellstart & Drive"],kunden:["Kunden","Leads & Aufträge"],einstellungen:["Einstellungen","Darstellung & Konto · pro Konto gespeichert"]};
+const TITLES={uebersicht:["Übersicht","Project Zeitkapsel · Kevin & Dominik"],aktionsplan:["Aktionsplan","Vom ersten Tag bis zum ersten Kunden"],protokoll:["Protokoll","Tagesprotokolle in Drive"],lernen:["Lernen","Lernprotokolle & Erkenntnisse"],kosten:["Kosten","Laufende & geplante Kostenfaktoren"],tools:["Tools","Schnellstart & Drive"],kunden:["Kunden","Leads & Aufträge"],vertrieb:["Vertrieb","Dein Fahrplan als Vertriebler"],einstellungen:["Einstellungen","Darstellung & Konto · pro Konto gespeichert"]};
 function showView(v){
   document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
   document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));
