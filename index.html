@@ -171,6 +171,7 @@ html.dark .pricetag.hot{background:#1f3312;color:#a5e06a;border-color:#3f6f00}
     <button class="nav" data-view="tools"><span class="ic">🚀</span><span>Tools</span></button>
     <button class="nav" data-view="kunden"><span class="ic">👥</span><span>Kunden</span></button>
     <button class="nav" data-view="vertrieb"><span class="ic">📈</span><span>Vertrieb</span></button>
+    <button class="nav" data-view="monster"><span class="ic">🥤</span><span>Monster-Radar</span></button>
     <div style="flex:1"></div>
     <div class="userchip"><div class="av" id="uav">·</div><div class="nm" id="whoami"></div><button id="settingsBtn" title="Einstellungen" style="font-size:16px">⚙</button><button id="signOutBtn" title="Abmelden">Abmelden</button></div>
   </aside>
@@ -297,13 +298,17 @@ html.dark .pricetag.hot{background:#1f3312;color:#a5e06a;border-color:#3f6f00}
       <div class="board" id="crmBoard"></div>
     </section>
 
-    <!-- EINSTELLUNGEN -->
-    <section class="view" id="view-einstellungen">
-      <div class="card"><h2>🥤 Monster-Radar · Wöchentliche Angebote <button class="reload" id="angReload">↻</button></h2>
+    <!-- MONSTER-RADAR -->
+    <section class="view" id="view-monster">
+      <div class="card"><h2>🥤 Wöchentliche Angebote <button class="reload" id="angReload">↻</button></h2>
         <div class="hint" id="angMeta" style="margin:0 0 10px"></div>
         <div id="angebote"><div class="empty"><span class="spin"></span> Lade …</div></div>
-        <div class="hint">Wird jeden Montag ca. 08:00 automatisch aktualisiert · Umkreis Muggensturm (76461) &amp; Rastatt · Ziel: unter 0,80 €/Dose.</div>
+        <div class="hint">Wird jeden Montag ca. 08:00 automatisch aktualisiert · Umkreis Muggensturm (76461) &amp; Rastatt · Ziel: unter 0,80 €/Dose · Vorrat kaufen, wenn's 🔥 gibt!</div>
       </div>
+    </section>
+
+    <!-- EINSTELLUNGEN -->
+    <section class="view" id="view-einstellungen">
       <div class="card"><h2>🎨 Darstellung</h2>
         <label class="fl">Modus</label>
         <div class="row" id="modeRow"></div>
@@ -862,7 +867,7 @@ function renderSettings(){
 $("#settingsBtn").onclick=()=>showView("einstellungen");
 
 /* ---------- Router ---------- */
-const TITLES={uebersicht:["Übersicht","Project Zeitkapsel · Kevin & Dominik"],aktionsplan:["Aktionsplan","Vom ersten Tag bis zum ersten Kunden"],protokoll:["Protokoll","Tagesprotokolle in Drive"],lernen:["Lernen","Lernprotokolle & Erkenntnisse"],kosten:["Kosten","Laufende & geplante Kostenfaktoren"],tools:["Tools","Schnellstart & Drive"],kunden:["Kunden","Leads & Aufträge"],vertrieb:["Vertrieb","Dein Fahrplan als Vertriebler"],einstellungen:["Einstellungen","Monster-Radar, Darstellung & Konto"]};
+const TITLES={uebersicht:["Übersicht","Project Zeitkapsel · Kevin & Dominik"],aktionsplan:["Aktionsplan","Vom ersten Tag bis zum ersten Kunden"],protokoll:["Protokoll","Tagesprotokolle in Drive"],lernen:["Lernen","Lernprotokolle & Erkenntnisse"],kosten:["Kosten","Laufende & geplante Kostenfaktoren"],tools:["Tools","Schnellstart & Drive"],kunden:["Kunden","Leads & Aufträge"],vertrieb:["Vertrieb","Dein Fahrplan als Vertriebler"],monster:["Monster-Radar","Wöchentliche Monster-Angebote · Ziel unter 0,80 €/Dose"],einstellungen:["Einstellungen","Darstellung & Konto · pro Konto gespeichert"]};
 function showView(v){
   document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
   document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));
