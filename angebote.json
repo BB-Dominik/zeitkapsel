@@ -3,31 +3,6 @@
   "week": "KW 28 · 06.–11.07.2026",
   "region": "Umkreis Muggensturm (76461) & Rastatt",
   "limit": 0.80,
-  "angebote": [
-    {
-      "laden": "Lidl (Rastatt/Umkreis)",
-      "produkt": "Monster Energy, versch. Sorten, 0,5 l",
-      "preis": 0.80,
-      "hinweis": "10er-Pack 7,99 € = 0,80 €/Dose · einzeln 0,89 € mit Lidl-Plus-App",
-      "gueltig": "bis Sa 11.07.",
-      "quelle": "https://www.marktguru.de/b/monster-energy"
-    },
-    {
-      "laden": "Kaufland (Rastatt)",
-      "produkt": "Monster Energy Multipack, 0,5 l",
-      "preis": 0.80,
-      "hinweis": "Pack ab 7,99 € (≈ 0,80 €/Dose)",
-      "gueltig": "ab Fr 10.07.",
-      "quelle": "https://sparkules.de/76461/suche/monster%20energy"
-    },
-    {
-      "laden": "Rewe (Rastatt/Muggensturm)",
-      "produkt": "Monster Energy Multipack, 0,5 l",
-      "preis": 0.80,
-      "hinweis": "Pack ab 7,99 € (≈ 0,80 €/Dose)",
-      "gueltig": "ab Fr 10.07.",
-      "quelle": "https://sparkules.de/76461/suche/monster%20energy"
-    }
-  ],
-  "hinweisAllgemein": "Diese Woche nichts sicher UNTER 0,80 € – Bestpreis genau 0,80 €/Dose im Multipack. Alle Preise zzgl. 0,25 € Pfand · Angebote je Filiale kurz im Prospekt gegenchecken."
+  "angebote": [],
+  "leerText": "Diese Woche leider keine Angebote – keine Einzeldose unter 0,80 €. Nächster Check: Montag ~08:00."
 }
