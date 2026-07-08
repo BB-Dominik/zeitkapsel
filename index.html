@@ -138,6 +138,12 @@ html.dark .savechip,html.dark .card h2 .reload,html.dark .tool .uses{background:
 .lead .lact button{font-size:11px;border:1px solid var(--line);background:var(--card);border-radius:6px;padding:2px 7px;cursor:pointer;color:var(--muted)}
 .lead .lact button:hover{color:var(--brand);border-color:var(--brand)}
 html.dark .lead{background:#101a26}
+/* --- Monster-Radar (Wöchentliche Angebote) --- */
+.pricetag{margin-left:auto;font-weight:800;font-size:14px;padding:4px 10px;border-radius:99px;background:#eef2f9;color:var(--ink);white-space:nowrap;flex:none}
+.pricetag.hot{background:#e8f8d8;color:#3f6f00;border:1px solid #b5e08a}
+html.dark .pricetag{background:#27374c;color:var(--ink)}
+html.dark .pricetag.hot{background:#1f3312;color:#a5e06a;border-color:#3f6f00}
+.angq{font-size:11px}
 </style>
 </head>
 <body>
@@ -293,6 +299,11 @@ html.dark .lead{background:#101a26}
 
     <!-- EINSTELLUNGEN -->
     <section class="view" id="view-einstellungen">
+      <div class="card"><h2>🥤 Monster-Radar · Wöchentliche Angebote <button class="reload" id="angReload">↻</button></h2>
+        <div class="hint" id="angMeta" style="margin:0 0 10px"></div>
+        <div id="angebote"><div class="empty"><span class="spin"></span> Lade …</div></div>
+        <div class="hint">Wird jeden Montag ca. 08:00 automatisch aktualisiert · Umkreis Muggensturm (76461) &amp; Rastatt · Ziel: unter 0,80 €/Dose.</div>
+      </div>
       <div class="card"><h2>🎨 Darstellung</h2>
         <label class="fl">Modus</label>
         <div class="row" id="modeRow"></div>
@@ -319,6 +330,7 @@ const CONFIG = {
 };
 const SCOPE="openid email profile https://www.googleapis.com/auth/drive";
 let ACCESS_TOKEN=null,CURRENT_EMAIL="",tokenClient=null,STATE={tasks:{}},saveTimer=null,USAGE={},usageTimer=null;
+let IN_APP=false,STATE_OK=false,STATE_ID=null,LEADS_OK=false,LEADS_ID=null,reauthAt=0;
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -331,11 +343,16 @@ function displayName(){const e=CURRENT_EMAIL;if(/voegele|dominik/.test(e))return
 async function sha256hex(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
 
 /* ---------- Auth ---------- */
-function showLogin(m){$("#app").style.display="none";$("#login").style.display="flex";$("#loginMsg").textContent=m||"";}
+function showLogin(m){IN_APP=false;$("#app").style.display="none";$("#login").style.display="flex";$("#loginMsg").textContent=m||"";}
+function reauth(){const n=Date.now();if(n-reauthAt<15000)return;reauthAt=n;
+  try{tokenClient.requestAccessToken({prompt:""});}catch(e){showLogin("Sitzung abgelaufen – bitte neu anmelden.");}}
 function bootAuth(){
   if(CONFIG.CLIENT_ID.indexOf("HIER_DEINE")===0){const w=$("#cfgWarn");w.style.display="block";w.innerHTML="⚙️ Setup nötig: CLIENT_ID im Code eintragen.";$("#loginBtn").disabled=true;return;}
   tokenClient=google.accounts.oauth2.initTokenClient({client_id:CONFIG.CLIENT_ID,scope:SCOPE,callback:async r=>{
-    if(r.error){showLogin("Anmeldung abgebrochen.");return;}ACCESS_TOKEN=r.access_token;if(await checkUser())enterApp();}});
+    if(r.error){if(!IN_APP)showLogin("Anmeldung abgebrochen.");return;}
+    ACCESS_TOKEN=r.access_token;
+    if(IN_APP){$("#saveChip").textContent="Bereit";return;}
+    if(await checkUser())enterApp();}});
   if(localStorage.getItem("zk_signed")){try{tokenClient.requestAccessToken({prompt:""})}catch(e){}}
 }
 async function checkUser(){
@@ -346,9 +363,11 @@ async function checkUser(){
   }catch(e){showLogin("Konnte Konto nicht prüfen.");return false;}
 }
 function signIn(){if(!tokenClient){showLogin("Google lädt noch …");return;}tokenClient.requestAccessToken({prompt:localStorage.getItem("zk_signed")?"":"consent"});}
-function signOut(){ACCESS_TOKEN=null;localStorage.removeItem("zk_signed");showLogin("");}
+function signOut(){ACCESS_TOKEN=null;IN_APP=false;localStorage.removeItem("zk_signed");showLogin("");}
 $("#loginBtn").onclick=signIn;$("#signOutBtn").onclick=signOut;
-async function enterApp(){$("#login").style.display="none";$("#app").style.display="flex";
+async function enterApp(){$("#login").style.display="none";$("#app").style.display="flex";IN_APP=true;
+  if(!window.__zkRefresh){window.__zkRefresh=setInterval(()=>{if(IN_APP){try{tokenClient.requestAccessToken({prompt:""})}catch(e){}}},45*60*1000);}
+  loadAngebote();
   await loadSettings();
   await loadUsage();renderTools();renderUsage();renderOvUsage();
   await loadState();renderAktionsplan();renderUebersicht();renderHours();renderVertrieb();loadHistory();loadProtoPreview();loadFiles();loadLernHistory();
@@ -359,21 +378,39 @@ async function driveList(folderId){
   const q=encodeURIComponent("'"+folderId+"' in parents and trashed=false");
   const f=encodeURIComponent("files(id,name,mimeType,modifiedTime,createdTime,webViewLink,fileExtension)");
   const r=await fetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields="+f+"&orderBy=modifiedTime desc&pageSize=100",{headers:auth()});
-  if(r.status===401){signIn();throw new Error("Sitzung abgelaufen – bitte neu anmelden.");}
+  if(r.status===401){reauth();throw new Error("Sitzung abgelaufen – bitte neu anmelden.");}
   if(!r.ok)throw new Error("Drive-Fehler "+r.status);return (await r.json()).files||[];
 }
-async function driveFind(name,parent){
+async function driveFindAll(name,parent){
   const q=encodeURIComponent("name = '"+name+"' and '"+(parent||CONFIG.MAIN_FOLDER)+"' in parents and trashed=false");
-  const r=await fetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,name)&pageSize=1",{headers:auth()});
-  if(!r.ok)return null;const j=await r.json();return (j.files&&j.files[0])||null;
+  const r=await fetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,name,createdTime)&orderBy=createdTime&pageSize=10",{headers:auth()});
+  if(r.status===401){reauth();throw new Error("Sitzung abgelaufen – bitte kurz warten und neu versuchen.");}
+  if(!r.ok)throw new Error("Drive-Fehler "+r.status);
+  return (await r.json()).files||[];
 }
+async function driveFind(name,parent){try{const f=await driveFindAll(name,parent);return f[0]||null;}catch(e){return null;}}
 async function driveReadText(id){const r=await fetch("https://www.googleapis.com/drive/v3/files/"+id+"?alt=media",{headers:auth()});if(!r.ok)return null;return r.text();}
-async function driveSaveJson(name,obj,parent){
-  const body=JSON.stringify(obj);const ex=await driveFind(name,parent);
-  if(ex){const r=await fetch("https://www.googleapis.com/upload/drive/v3/files/"+ex.id+"?uploadType=media",{method:"PATCH",headers:Object.assign(auth(),{"Content-Type":"application/json"}),body});return r.ok;}
+async function driveReadTextStrict(id){
+  const r=await fetch("https://www.googleapis.com/drive/v3/files/"+id+"?alt=media",{headers:auth()});
+  if(r.status===401){reauth();throw new Error("Sitzung abgelaufen.");}
+  if(!r.ok)throw new Error("Drive-Lesefehler "+r.status);return r.text();
+}
+async function driveTrash(id){try{await fetch("https://www.googleapis.com/drive/v3/files/"+id,{method:"PATCH",headers:Object.assign(auth(),{"Content-Type":"application/json"}),body:JSON.stringify({trashed:true})});}catch(e){}}
+async function driveSaveJson(name,obj,parent,fileId){
+  const body=JSON.stringify(obj);
+  let id=fileId||null;
+  if(!id){const f=await driveFindAll(name,parent);id=f.length?f[0].id:null;}
+  if(id){
+    const r=await fetch("https://www.googleapis.com/upload/drive/v3/files/"+id+"?uploadType=media",{method:"PATCH",headers:Object.assign(auth(),{"Content-Type":"application/json"}),body});
+    if(r.status===401){reauth();throw new Error("Sitzung abgelaufen – bitte neu versuchen.");}
+    if(!r.ok)throw new Error("Drive-Fehler "+r.status);
+    return id;
+  }
   const b="zk"+Date.now();const meta={name:name,parents:[parent||CONFIG.MAIN_FOLDER],mimeType:"application/json"};
   const mp="--"+b+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+JSON.stringify(meta)+"\r\n--"+b+"\r\nContent-Type: application/json\r\n\r\n"+body+"\r\n--"+b+"--";
-  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",{method:"POST",headers:Object.assign(auth(),{"Content-Type":"multipart/related; boundary="+b}),body:mp});return r.ok;
+  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{method:"POST",headers:Object.assign(auth(),{"Content-Type":"multipart/related; boundary="+b}),body:mp});
+  if(!r.ok)throw new Error("Drive-Fehler "+r.status);
+  const j=await r.json();return j.id||true;
 }
 async function driveCreateDoc(name,html,folder){
   const meta={name:name,parents:[folder||CONFIG.PROTO_FOLDER],mimeType:"application/vnd.google-apps.document"};const b="zk"+Date.now();
@@ -382,9 +419,36 @@ async function driveCreateDoc(name,html,folder){
   if(!r.ok)throw new Error("Upload-Fehler "+r.status);return r.json();
 }
 
-/* ---------- State (shared via Drive) ---------- */
+/* ---------- State (shared via Drive, mit Duplikat-Heilung & Schreibschutz) ---------- */
+function mergeStates(parts){
+  const out={tasks:{},hours:[],vertrieb:{}};const seen={};
+  parts.forEach(p=>{
+    if(p&&p.tasks)Object.keys(p.tasks).forEach(k=>{const t=p.tasks[k];const cur=out.tasks[k];
+      if(!cur){out.tasks[k]=t;}
+      else{if(t&&t.done&&!cur.done)out.tasks[k]=Object.assign({},t,{note:cur.note||t.note});
+        else if(t&&t.note&&!cur.note)cur.note=t.note;}});
+    if(p&&Array.isArray(p.hours))p.hours.forEach(h=>{if(h&&h.id&&!seen[h.id]){seen[h.id]=1;out.hours.push(h);}});
+    if(p&&p.vertrieb&&typeof p.vertrieb==="object")Object.keys(p.vertrieb).forEach(k=>{if(p.vertrieb[k])out.vertrieb[k]=true;});
+  });
+  return out;
+}
 async function loadState(){
-  try{const ex=await driveFind(CONFIG.STATE_FILE,CONFIG.DATA_FOLDER);if(ex){const t=await driveReadText(ex.id);if(t)STATE=JSON.parse(t);}}catch(e){}
+  STATE_OK=false;STATE_ID=null;
+  try{
+    const files=await driveFindAll(CONFIG.STATE_FILE,CONFIG.DATA_FOLDER);
+    if(files.length){
+      STATE_ID=files[0].id;
+      const parts=[];
+      for(const f of files){const t=await driveReadTextStrict(f.id);if(t){try{parts.push(JSON.parse(t))}catch(e){}}}
+      STATE=files.length>1?mergeStates(parts):(parts[0]||{tasks:{}});
+      if(files.length>1){
+        await driveSaveJson(CONFIG.STATE_FILE,STATE,CONFIG.DATA_FOLDER,STATE_ID);
+        for(let i=1;i<files.length;i++)driveTrash(files[i].id);
+        toast("🔧 Doppelte Status-Datei gefunden & zusammengeführt.");
+      }
+    }else{STATE={tasks:{}};}
+    STATE_OK=true;
+  }catch(e){toast("⚠ Stand konnte nicht geladen werden – Speichern ist gesperrt. Bitte Seite neu laden.");}
   if(!STATE.tasks)STATE.tasks={};
   if(!Array.isArray(STATE.hours))STATE.hours=[];
   if(!STATE.vertrieb||typeof STATE.vertrieb!=="object")STATE.vertrieb={};
@@ -394,9 +458,10 @@ async function loadUsage(){
   if(!USAGE||typeof USAGE!=="object")USAGE=load("zk_usage",{});save("zk_usage",USAGE);
 }
 function saveStateSoon(){
+  if(!STATE_OK){$("#saveChip").textContent="⚠ Nicht gespeichert";toast("Speichern gesperrt: Daten wurden vorher nicht geladen. Bitte Seite neu laden – nichts wird überschrieben.");return;}
   $("#saveChip").textContent="Speichere …";
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(async()=>{try{await driveSaveJson(CONFIG.STATE_FILE,STATE,CONFIG.DATA_FOLDER);$("#saveChip").innerHTML="✓ Gespeichert";}catch(e){$("#saveChip").textContent="Fehler beim Speichern";}},600);
+  saveTimer=setTimeout(async()=>{try{const id=await driveSaveJson(CONFIG.STATE_FILE,STATE,CONFIG.DATA_FOLDER,STATE_ID);if(typeof id==="string")STATE_ID=id;$("#saveChip").innerHTML="✓ Gespeichert";}catch(e){$("#saveChip").textContent="Fehler beim Speichern";toast("⚠ Speichern fehlgeschlagen: "+e.message);}},600);
 }
 
 /* ---------- Aktionsplan data ---------- */
@@ -680,11 +745,41 @@ document.addEventListener("click",e=>{const a=e.target.closest(".flist a[href]")
     rec.start();on=true;btn.classList.add("on");btn.textContent="⏹ Stopp";}catch(e){toast("Spracheingabe nicht verfügbar.");}};
 })();
 
-/* ---------- CRM / Vertriebs-Pipeline (geteilt via Drive) ---------- */
+/* ---------- CRM / Vertriebs-Pipeline (geteilt via Drive, mit Duplikat-Heilung & Schreibschutz) ---------- */
 const STAGES=["Erstkontakt","Demo","Angebot","Kunde","Verloren"];
 let LEADS=[],leadsTimer=null;
-async function loadLeads(){try{const ex=await driveFind(CONFIG.CRM_FILE,CONFIG.DATA_FOLDER);if(ex){const t=await driveReadText(ex.id);if(t)LEADS=JSON.parse(t);}}catch(e){}if(!Array.isArray(LEADS))LEADS=[];}
-function saveLeadsSoon(){$("#saveChip").textContent="Speichere …";clearTimeout(leadsTimer);leadsTimer=setTimeout(async()=>{try{await driveSaveJson(CONFIG.CRM_FILE,LEADS,CONFIG.DATA_FOLDER);$("#saveChip").innerHTML="✓ Gespeichert";}catch(e){$("#saveChip").textContent="Fehler beim Speichern";}},600);}
+function parseDE(s){if(!s)return 0;const m=String(s).split(".");if(m.length<3)return 0;return new Date(Number(m[2]),Number(m[1])-1,Number(m[0])).getTime()||0;}
+function mergeLeads(parts){
+  const map={};
+  parts.forEach(arr=>{(Array.isArray(arr)?arr:[]).forEach(l=>{if(!l||!l.id)return;
+    const cur=map[l.id];
+    if(!cur||parseDE(l.updated)>=parseDE(cur.updated))map[l.id]=l;});});
+  return Object.values(map);
+}
+async function loadLeads(){
+  LEADS_OK=false;LEADS_ID=null;
+  try{
+    const files=await driveFindAll(CONFIG.CRM_FILE,CONFIG.DATA_FOLDER);
+    if(files.length){
+      LEADS_ID=files[0].id;
+      const parts=[];
+      for(const f of files){const t=await driveReadTextStrict(f.id);if(t){try{parts.push(JSON.parse(t))}catch(e){}}}
+      LEADS=files.length>1?mergeLeads(parts):(parts[0]||[]);
+      if(files.length>1){
+        await driveSaveJson(CONFIG.CRM_FILE,LEADS,CONFIG.DATA_FOLDER,LEADS_ID);
+        for(let i=1;i<files.length;i++)driveTrash(files[i].id);
+        toast("🔧 Doppelte CRM-Datei gefunden & zusammengeführt.");
+      }
+    }else{LEADS=[];}
+    LEADS_OK=true;
+  }catch(e){toast("⚠ Leads konnten nicht geladen werden – Speichern ist gesperrt. Bitte Seite neu laden.");}
+  if(!Array.isArray(LEADS))LEADS=[];
+}
+function saveLeadsSoon(){
+  if(!LEADS_OK){$("#saveChip").textContent="⚠ Nicht gespeichert";toast("Speichern gesperrt: Leads wurden vorher nicht geladen. Bitte Seite neu laden – nichts wird überschrieben.");return;}
+  $("#saveChip").textContent="Speichere …";clearTimeout(leadsTimer);
+  leadsTimer=setTimeout(async()=>{try{const id=await driveSaveJson(CONFIG.CRM_FILE,LEADS,CONFIG.DATA_FOLDER,LEADS_ID);if(typeof id==="string")LEADS_ID=id;$("#saveChip").innerHTML="✓ Gespeichert";}catch(e){$("#saveChip").textContent="Fehler beim Speichern";toast("⚠ Speichern fehlgeschlagen: "+e.message);}},600);
+}
 function eur(n){n=parseFloat(String(n).replace(",","."))||0;return n.toLocaleString("de-DE")+" €";}
 function crmInit(){const sel=$("#cStatus");if(sel&&!sel.options.length)STAGES.forEach(s=>{const o=document.createElement("option");o.textContent=s;sel.appendChild(o);});}
 function renderCrm(){
@@ -722,6 +817,27 @@ function saveLead(){const firma=$("#cFirma").value.trim();if(!firma){toast("Bitt
  resetCrmForm();renderCrm();saveLeadsSoon();toast("✅ Gespeichert.");}
 $("#cSave").onclick=saveLead;$("#cCancel").onclick=resetCrmForm;$("#crmReload").onclick=async()=>{await loadLeads();renderCrm();toast("Aktualisiert.");};
 
+/* ---------- Monster-Radar (Wöchentliche Angebote) ---------- */
+async function loadAngebote(){
+  const box=$("#angebote"),meta=$("#angMeta");if(!box)return;
+  box.innerHTML='<div class="empty"><span class="spin"></span> Lade …</div>';
+  try{
+    const r=await fetch("angebote.json?ts="+Date.now(),{cache:"no-store"});
+    if(!r.ok)throw new Error("angebote.json nicht gefunden ("+r.status+")");
+    const d=await r.json();
+    if(meta)meta.textContent=(d.week?d.week+" · ":"")+(d.region||"")+(d.updated?" · Stand "+String(d.updated).split("-").reverse().join("."):"");
+    const list=Array.isArray(d.angebote)?d.angebote:[];
+    const lim=(typeof d.limit==="number")?d.limit:0.8;
+    if(!list.length){box.innerHTML='<div class="empty">'+esc(d.leerText||"Diese Woche leider kein Monster-Angebot im Zielbereich gefunden. 😢 Nächster Check: Montag ~08:00.")+'</div>';return;}
+    box.innerHTML='<ul class="flist">'+list.map(a=>{
+      const hot=typeof a.preis==="number"&&a.preis<=lim;
+      const p=typeof a.preis==="number"?a.preis.toFixed(2).replace(".",",")+" €":esc(String(a.preis||"?"));
+      return '<li><div class="ficon">'+(hot?"🔥":"🥤")+'</div><div class="fmeta"><div class="ft">'+esc(a.laden||"?")+' – '+esc(a.produkt||"Monster Energy")+'</div><div class="fd">'+esc(a.hinweis||"")+(a.gueltig?' · '+esc(a.gueltig):'')+(a.quelle?' · <a class="angq" href="'+esc(a.quelle)+'" target="_blank" rel="noopener">Quelle</a>':'')+'</div></div><span class="pricetag'+(hot?" hot":"")+'">'+p+'/Dose</span></li>';
+    }).join("")+'</ul>'+(d.hinweisAllgemein?'<div class="hint">'+esc(d.hinweisAllgemein)+'</div>':'');
+  }catch(e){box.innerHTML='<div class="err">'+esc(e.message)+'</div>';}
+}
+$("#angReload").onclick=loadAngebote;
+
 /* ---------- Einstellungen (pro Konto) ---------- */
 const THEMES={
  babyblau:{brand:"#2f86d8",brand2:"#5aa6e8",brandsoft:"#e8f2fc",brandsoft2:"#bcdcf6",brandink:"#0c3c66"},
@@ -746,7 +862,7 @@ function renderSettings(){
 $("#settingsBtn").onclick=()=>showView("einstellungen");
 
 /* ---------- Router ---------- */
-const TITLES={uebersicht:["Übersicht","Project Zeitkapsel · Kevin & Dominik"],aktionsplan:["Aktionsplan","Vom ersten Tag bis zum ersten Kunden"],protokoll:["Protokoll","Tagesprotokolle in Drive"],lernen:["Lernen","Lernprotokolle & Erkenntnisse"],kosten:["Kosten","Laufende & geplante Kostenfaktoren"],tools:["Tools","Schnellstart & Drive"],kunden:["Kunden","Leads & Aufträge"],vertrieb:["Vertrieb","Dein Fahrplan als Vertriebler"],einstellungen:["Einstellungen","Darstellung & Konto · pro Konto gespeichert"]};
+const TITLES={uebersicht:["Übersicht","Project Zeitkapsel · Kevin & Dominik"],aktionsplan:["Aktionsplan","Vom ersten Tag bis zum ersten Kunden"],protokoll:["Protokoll","Tagesprotokolle in Drive"],lernen:["Lernen","Lernprotokolle & Erkenntnisse"],kosten:["Kosten","Laufende & geplante Kostenfaktoren"],tools:["Tools","Schnellstart & Drive"],kunden:["Kunden","Leads & Aufträge"],vertrieb:["Vertrieb","Dein Fahrplan als Vertriebler"],einstellungen:["Einstellungen","Monster-Radar, Darstellung & Konto"]};
 function showView(v){
   document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
   document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));
