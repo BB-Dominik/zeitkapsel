@@ -1,18 +1,18 @@
 {
-  "updated": "2026-07-16",
-  "week": "KW 29 · 13.–18.07.2026",
+  "updated": "2026-07-20",
+  "week": "KW 30 · 20.07.–25.07.2026",
   "region": "Umkreis Muggensturm (76461) & Rastatt",
   "limit": 0.85,
   "angebote": [
     {
-      "laden": "Penny (Rastatt/Muggensturm)",
-      "produkt": "Monster Energy Drink, 0,5 l",
-      "preis": 0.80,
-      "hinweis": "10er-Pack 7,99 € = 0,80 €/Dose (ohne Pfand)",
-      "gueltig": "13.–18.07.",
-      "quelle": "https://rabatt-kompass.de/produkte/monster-energy"
+      "laden": "Netto Marken-Discount",
+      "produkt": "Monster Energy 0,5 l",
+      "preis": 0.77,
+      "hinweis": "Einzeldose im Angebot, regulär 1,49 € (Preis ohne Pfand). Filiale u.a. Rastatt-Niederbühl, Murgtalstr. 79.",
+      "gueltig": "Mo 20.07.–Sa 25.07.2026",
+      "quelle": "https://www.kaufda.de/Angebote/Monster-Energy"
     }
   ],
   "leerText": "Diese Woche leider keine Angebote – nichts unter 0,85 €/Dose. Nächster Check: Montag ~08:00.",
-  "hinweisAllgemein": "Knapp drüber diese Woche: Netto 0,89 €/Dose (13.–18.07.). Alle Preise ohne Pfand (0,25 €/Dose)."
+  "hinweisAllgemein": "Knapp verpasst: Penny 0,89 € (bis 25.07.) und Kaufland 0,88 € (23.–29.07.) – jeweils über der 0,85-€-Grenze. Pfand (0,25 €/Dose) ist bei keinem Preis eingerechnet."
 }
