@@ -1,18 +1,9 @@
 {
-  "updated": "2026-07-27",
-  "week": "KW 31 · 27.07.–01.08.2026",
+  "updated": "2026-08-03",
+  "week": "KW 32 · 03.08.–08.08.2026",
   "region": "Umkreis Muggensturm (76461) & Rastatt",
   "limit": 0.85,
-  "angebote": [
-    {
-      "laden": "Netto Marken-Discount",
-      "produkt": "Monster Energy Drink 0,5 l (versch. Sorten)",
-      "preis": 0.77,
-      "hinweis": "Einzeldose, ohne Pfand",
-      "gueltig": "27.07.–01.08.2026",
-      "quelle": "https://rabatt-kompass.de/netto-marken-discount-prospekte/prospekt-3403017-0#page_60"
-    }
-  ],
+  "angebote": [],
   "leerText": "Diese Woche leider keine Angebote – nichts unter 0,85 €/Dose. Nächster Check: Montag ~08:00.",
-  "hinweisAllgemein": "Knapp verpasst: Kaufland 0,88 € (bis 29.07.), Lidl 0,89 € mit Lidl Plus (bis 01.08.), REWE 0,99 € (bis 02.08.) – alle Preise ohne Pfand. Aldi Süd, Penny und Edeka hatten diese Woche kein Monster-Angebot im Prospekt."
+  "hinweisAllgemein": "Aktuell günstigstes bekanntes Angebot bundesweit liegt bei 0,88 €/Dose (z. B. Kaufland, V-Markt) – knapp über dem Limit. Bei Lidl, Aldi Süd, Penny, Netto, Rewe, Edeka und Kaufland läuft diese Woche kein Monster-Energy-Angebot."
 }
