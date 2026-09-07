@@ -1,26 +1,9 @@
 {
-    "updated": "2026-08-10",
-    "week": "KW 33 · 10.08.–16.08.2026",
-    "region": "Umkreis Muggensturm (76461) & Rastatt",
-    "limit": 0.85,
-    "angebote": [
-          {
-                  "laden": "Kaufland",
-                  "produkt": "Monster Energy Drink 0,5 l",
-                  "preis": 0.78,
-                  "hinweis": "10er-Pack 7,77 € = 0,78 €/Dose (ohne Pfand)",
-                  "gueltig": "06.08.–12.08.2026",
-                  "quelle": "https://rabatt-kompass.de/produkte/monster-energy"
-          },
-          {
-                  "laden": "Aldi Süd",
-                  "produkt": "Monster Energy Drink XXL 0,5 l",
-                  "preis": 0.80,
-                  "hinweis": "10er-Pack (5-l-Packung) 7,99 € = 0,80 €/Dose (ohne Pfand)",
-                  "gueltig": "13.08.–15.08.2026",
-                  "quelle": "https://rabatt-kompass.de/produkte/monster-energy"
-          }
-    ],
-    "leerText": "Diese Woche leider keine Angebote – nichts unter 0,85 €/Dose. Nächster Check: Montag ~08:00.",
-    "hinweisAllgemein": "Lidl, Penny, Netto, Rewe, Edeka hatten diese Woche keine Monster-Angebote im Prospekt. Combi (0,88 €/Dose) liegt außerhalb der geprüften Region."
+      "updated": "2026-09-07",
+      "week": "KW 37 · 07.09.–12.09.2026",
+      "region": "Umkreis Muggensturm (76461) & Rastatt",
+      "limit": 0.85,
+      "angebote": [],
+      "leerText": "Diese Woche leider keine Angebote – nichts unter 0,85 €/Dose. Nächster Check: Montag ~08:00.",
+      "hinweisAllgemein": "Knapp verpasst: Edeka 0,88 €/Dose, Lidl 0,89 €/Dose, Penny 10er-Pack 8,88 € = 0,888 €/Dose (alle gültig 07.09.–12.09.2026, Preise ohne Pfand)."
 }
