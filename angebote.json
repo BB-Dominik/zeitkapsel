@@ -1,18 +1,9 @@
 {
-  "updated": "2026-10-12",
-  "week": "KW 42 · 12.10.–17.10.2026",
+  "updated": "2026-10-19",
+  "week": "KW 43 · 19.10.–25.10.2026",
   "region": "Umkreis Muggensturm (76461) & Rastatt",
   "limit": 0.85,
-  "angebote": [
-    {
-      "laden": "Lidl",
-      "produkt": "Monster Energy Drink 0,5 l",
-      "preis": 0.75,
-      "hinweis": "0,75 €/Dose mit Lidl-Plus-App (ohne Pfand)",
-      "gueltig": "Mo. 12.10. – Sa. 17.10.2026",
-      "quelle": "https://www.meinprospekt.de/angebote/monster-energy"
-    }
-  ],
+  "angebote": [],
   "leerText": "Diese Woche leider keine Angebote – nichts unter 0,85 €/Dose. Nächster Check: Montag ~08:00.",
-  "hinweisAllgemein": "Rewe und Kaufland haben Monster im Prospekt, Preis nicht ersichtlich. Netto ab 19.10. mit 0,99 €. Regalpreise ohne Pfand (0,25 €/Dose)."
+  "hinweisAllgemein": "Knapp verpasst: Netto und Penny je 0,99 €/Dose (bis 24./25.10.). Preise ohne Pfand."
 }
